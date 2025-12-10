@@ -1,0 +1,26 @@
+---
+# Data Layer Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shopping-cart-data
+  labels:
+    app.kubernetes.io/name: shopping-cart
+    app.kubernetes.io/part-of: shopping-cart
+    app.kubernetes.io/component: data
+    environment: dev
+    tier: data
+    istio-injection: enabled
+---
+# Application Layer Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shopping-cart-apps
+  labels:
+    app.kubernetes.io/name: shopping-cart
+    app.kubernetes.io/part-of: shopping-cart
+    app.kubernetes.io/component: application
+    environment: dev
+    tier: application
+    istio-injection: enabled
