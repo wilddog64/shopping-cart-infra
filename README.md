@@ -209,8 +209,28 @@ spec:
 
 ## CI/CD Integration
 
-Jenkins pipelines in application repositories update Helm values in this repo:
+### Overview
+This repository integrates with GitHub Actions and Jenkins for automated container image builds and deployments.
 
+**Workflow:**
+1. Application repo triggers GitHub Actions on push
+2. GitHub Actions builds and pushes image to GHCR
+3. GitHub Actions triggers Jenkins webhook
+4. Jenkins updates this repo's Helm values
+5. Argo CD syncs and deploys to Kubernetes
+
+### Documentation
+- **[Container Image Workflow Guide](docs/container-image-workflow.md)** - Complete guide for building and pushing images to GHCR
+- **[GitHub Actions & Jenkins Webhook Setup](docs/github-actions-webhook-setup.md)** - Step-by-step integration instructions
+- **[Examples Directory](examples/README.md)** - Dockerfiles, GitHub Actions templates, and quick start guide
+
+### Automation Scripts
+Located in `bin/`:
+- **`build-and-push.sh`** - Build and push container images locally for testing
+- **`setup-service-repo.sh`** - Automate GitHub repository creation with Actions workflows
+- **`deploy-infra.sh`** - Deploy complete infrastructure stack
+
+### Example: Automated CI Pipeline
 ```bash
 # Example: Product Catalog service CI pipeline
 # 1. Build and push image: ghcr.io/user/product-catalog:abc123
@@ -223,7 +243,7 @@ git push origin main
 # 5. Argo CD detects change and syncs
 ```
 
-See the blueprint repository's `docs/cicd-guide.md` for complete CI/CD workflows.
+See the blueprint repository's `docs/cicd-guide.md` for additional CI/CD patterns.
 
 ## Monitoring and Health Checks
 

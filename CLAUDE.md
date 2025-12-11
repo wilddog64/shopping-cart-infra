@@ -54,6 +54,17 @@ Separation provides:
 
 ```
 shopping-cart-infrastructure/
+├── bin/                            # Automation scripts
+│   ├── build-and-push.sh           # Build/push container images to GHCR
+│   ├── setup-service-repo.sh       # Automate GitHub repo creation
+│   └── deploy-infra.sh             # Deploy infrastructure stack
+├── docs/                           # Documentation
+│   ├── container-image-workflow.md # GHCR image build/push guide
+│   └── github-actions-webhook-setup.md  # CI/CD integration guide
+├── examples/                       # Templates and examples
+│   ├── dockerfiles/                # Multi-stage Dockerfiles (Node, Python, Java, Go)
+│   ├── github-actions/             # GitHub Actions workflow templates
+│   └── README.md                   # Quick start guide
 ├── data-layer/                     # Infrastructure manifests
 │   ├── postgresql/
 │   │   ├── products/               # Product catalog database
@@ -144,6 +155,120 @@ When adding a new database or cache:
 4. Update `vault/setup-database-secrets-engine.sh` if using Vault DB engine
 5. Test deployment in dev namespace
 6. Document in this file
+
+## CI/CD Automation
+
+### Documentation
+This repository includes comprehensive CI/CD documentation:
+- **`docs/container-image-workflow.md`** - Complete guide for building and pushing container images to GHCR
+- **`docs/github-actions-webhook-setup.md`** - Step-by-step GitHub Actions and Jenkins webhook integration
+- **`examples/README.md`** - Quick start guide with Dockerfiles and workflow templates
+
+### Automation Scripts (`bin/`)
+
+#### build-and-push.sh
+Build and push container images locally for testing:
+
+```bash
+# Build only (local test)
+./bin/build-and-push.sh product-catalog
+
+# Build and push to GHCR
+./bin/build-and-push.sh product-catalog latest --push
+
+# Build with custom tag
+./bin/build-and-push.sh shopping-cart v1.2.3 --push
+```
+
+**Features:**
+- Creates temporary build context with sample app
+- Auto-tags with git SHA
+- Tests container locally before pushing
+- Supports Node.js, Python, Java, Go service types
+
+#### setup-service-repo.sh
+Automate GitHub repository creation with complete CI/CD setup:
+
+```bash
+# Create new service repository with GitHub Actions
+./bin/setup-service-repo.sh \
+  --service product-catalog \
+  --type nodejs \
+  --jenkins-url https://jenkins.example.com/generic-webhook-trigger/invoke \
+  --jenkins-token your-webhook-token
+
+# Supported types: nodejs, python, java, go
+```
+
+**What it does:**
+1. Creates GitHub repository using `gh` CLI
+2. Copies appropriate Dockerfile template
+3. Adds GitHub Actions workflow
+4. Configures repository secrets (JENKINS_WEBHOOK_URL, JENKINS_WEBHOOK_TOKEN)
+5. Creates sample application code
+6. Enables GitHub Actions
+7. Pushes initial commit
+
+#### deploy-infra.sh
+Deploy complete infrastructure stack:
+
+```bash
+# Deploy with Vault setup
+./bin/deploy-infra.sh
+
+# Deploy specific components
+./bin/deploy-infra.sh --vault-only
+./bin/deploy-infra.sh --postgres-only
+```
+
+### CI/CD Workflow
+
+**Complete Pipeline:**
+```
+1. Developer pushes code to application repo (e.g., shopping-cart-product-catalog)
+   ↓
+2. GitHub Actions workflow triggers (build-push.yml)
+   - Lints Dockerfile (Hadolint)
+   - Scans for vulnerabilities (Trivy)
+   - Builds multi-stage Docker image
+   - Tags with multiple strategies:
+     * main-abc1234 (branch-sha)
+     * main (branch name)
+     * latest (if main branch)
+   - Pushes to GHCR (ghcr.io/user/product-catalog:main-abc1234)
+   ↓
+3. GitHub Actions triggers Jenkins webhook
+   - Sends image tag, git SHA, commit message
+   ↓
+4. Jenkins pipeline executes
+   - Clones this infrastructure repository
+   - Updates Helm values: chart/values-dev.yaml
+   - Updates image tag using yq
+   - Commits and pushes to main branch
+   ↓
+5. Argo CD detects change
+   - Syncs application with new image tag
+   - Deploys to Kubernetes (shopping-cart-apps namespace)
+```
+
+### Example GitHub Actions Workflow
+Located in `examples/github-actions/build-push.yml`:
+
+```yaml
+# Triggered on: push to main/develop, PRs, releases
+# Jobs:
+#   - lint: Hadolint + Trivy (PRs only)
+#   - build-and-push: Build, tag, push to GHCR
+#   - test-image: Health check validation
+#   - trigger-jenkins: Webhook notification (main branch only)
+```
+
+### Example Dockerfiles
+Located in `examples/dockerfiles/`:
+- **Dockerfile.product-catalog** - Node.js with Alpine, multi-stage
+- **Dockerfile.shopping-cart** - Python with slim image, Gunicorn
+- **Dockerfile.order-service** - Java with Maven, JRE-only runtime
+- **Dockerfile.payment-service** - Go with scratch base (~10MB)
 
 ## Configuration Management
 
