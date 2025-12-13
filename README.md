@@ -18,10 +18,13 @@ This repository contains the **actual Kubernetes infrastructure implementation**
 This repository provides:
 
 1. **Data Layer Infrastructure** - PostgreSQL and Redis StatefulSets
-2. **Helm Charts** - Application service deployment templates
-3. **Argo CD Applications** - GitOps deployment configuration
-4. **External Secrets** - Vault integration for credential management
-5. **Namespace Definitions** - Two-tier namespace model
+2. **Vault Integration** - Dynamic database credentials and secure secrets management
+3. **Helm Charts** - Application service deployment templates
+4. **Argo CD Applications** - GitOps deployment configuration
+5. **External Secrets** - Vault integration for credential management
+6. **Namespace Definitions** - Two-tier namespace model
+
+**Planned:** RabbitMQ message queue for asynchronous order processing and event-driven architecture (see [Message Queue Implementation Plan](docs/plans/message-queue-implementation.md))
 
 ## Architecture Reference
 
@@ -338,6 +341,49 @@ kubectl apply -f data-layer/
 2. Commit and push changes
 3. Argo CD automatically syncs (if auto-sync enabled)
 4. Or manually sync: `argocd app sync shopping-cart-infrastructure`
+
+## Planned Enhancements
+
+### Message Queue Infrastructure (RabbitMQ)
+
+**Status**: Planned (see [detailed implementation plan](docs/plans/message-queue-implementation.md))
+
+**Objective**: Add RabbitMQ message queue to enable asynchronous order processing and event-driven architecture.
+
+**Benefits**:
+- Faster user response times (order creation < 100ms vs 500ms+ synchronous)
+- Automatic retry on failures
+- Independent service scaling
+- Better fault isolation
+- Event-driven microservices communication
+
+**Implementation Stages**:
+1. **Stage 1**: Infrastructure setup (RabbitMQ StatefulSet in `shopping-cart-data`)
+2. **Stage 2**: Vault integration (dynamic credential management)
+3. **Stage 3**: Application integration (publisher/consumer libraries)
+4. **Stage 4**: Monitoring & production readiness
+
+**Use Cases**:
+- Order processing pipeline (payment, email, fulfillment)
+- Inventory updates and cache invalidation
+- Shopping cart abandonment notifications
+- Cross-service event broadcasting
+
+**Timeline**: 4 stages, ~15-20 hours total effort
+
+For complete architecture, queue design, and implementation details, see [Message Queue Implementation Plan](docs/plans/message-queue-implementation.md).
+
+---
+
+### Vault Integration Enhancements
+
+**Current**: Dynamic PostgreSQL credentials, static Redis passwords
+
+**Documentation**:
+- [Vault Usage Guide](docs/vault-usage-guide.md) - Complete integration guide
+- [Vault Password Rotation](docs/vault-password-rotation.md) - Rotation testing and best practices
+- [Integration Test](bin/test-vault-integration.sh) - Automated Vault functionality test
+- [Rotation Test](bin/test-vault-rotation.sh) - Password lifecycle validation
 
 ## License
 

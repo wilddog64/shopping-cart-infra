@@ -50,6 +50,49 @@ Separation provides:
 - ExternalSecrets syncs to Kubernetes secrets
 - Single source of truth in Vault
 
+**Vault Integration Documentation:**
+- [Vault Usage Guide](docs/vault-usage-guide.md) - Complete integration guide
+- [Vault Password Rotation](docs/vault-password-rotation.md) - Rotation testing and best practices
+- [Integration Test](bin/test-vault-integration.sh) - Automated Vault functionality test
+- [Rotation Test](bin/test-vault-rotation.sh) - Password lifecycle validation
+
+### Planned Message Queue (RabbitMQ)
+
+**Status**: Planned - See [Message Queue Implementation Plan](docs/plans/message-queue-implementation.md)
+
+**Objective**: Add RabbitMQ to `shopping-cart-data` namespace for asynchronous order processing and event-driven architecture.
+
+**Key Benefits:**
+- Decouple order creation from payment/email/fulfillment
+- Fast user responses (< 100ms vs 500ms+ synchronous)
+- Automatic retry on failures
+- Independent service scaling
+- Event-driven microservices communication
+
+**Implementation Stages:**
+1. **Stage 1**: RabbitMQ StatefulSet deployment (2-3 hours)
+2. **Stage 2**: Vault integration for dynamic credentials (3-4 hours)
+3. **Stage 3**: Application integration (publisher/consumer libraries) (6-8 hours)
+4. **Stage 4**: Monitoring & production readiness (4-6 hours)
+
+**Primary Use Cases:**
+- Order processing pipeline (payment → email → fulfillment)
+- Inventory updates → cache invalidation
+- Cart abandonment notifications
+- Cross-service event broadcasting
+
+**Directory Structure (Planned):**
+```
+data-layer/
+└── rabbitmq/
+    ├── statefulset.yaml       # 3-replica cluster
+    ├── service.yaml           # AMQP + Management UI
+    ├── configmap.yaml         # RabbitMQ configuration
+    └── pvc.yaml               # Persistent queue storage
+```
+
+See [Message Queue Implementation Plan](docs/plans/message-queue-implementation.md) for complete architecture, queue design, and detailed implementation guide.
+
 ## Repository Structure
 
 ```
