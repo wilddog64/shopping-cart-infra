@@ -1,0 +1,70 @@
+---
+# Headless service for StatefulSet cluster formation
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-headless
+  namespace: shopping-cart-data
+  labels:
+    app: rabbitmq
+    component: message-queue
+spec:
+  clusterIP: None
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+      protocol: TCP
+    - name: management
+      port: 15672
+      targetPort: 15672
+      protocol: TCP
+    - name: epmd
+      port: 4369
+      targetPort: 4369
+      protocol: TCP
+    - name: dist
+      port: 25672
+      targetPort: 25672
+      protocol: TCP
+  selector:
+    app: rabbitmq
+  publishNotReadyAddresses: true
+---
+# LoadBalancer service for external access (AMQP)
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: shopping-cart-data
+  labels:
+    app: rabbitmq
+    component: message-queue
+spec:
+  type: ClusterIP
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+      protocol: TCP
+  selector:
+    app: rabbitmq
+---
+# LoadBalancer service for Management UI
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-management
+  namespace: shopping-cart-data
+  labels:
+    app: rabbitmq
+    component: message-queue
+spec:
+  type: LoadBalancer
+  ports:
+    - name: management
+      port: 15672
+      targetPort: 15672
+      protocol: TCP
+  selector:
+    app: rabbitmq
