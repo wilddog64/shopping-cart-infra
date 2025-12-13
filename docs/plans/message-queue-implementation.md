@@ -243,6 +243,8 @@ Order Queue → Processing Fails (3x retry) → DLQ
 
 **Goal**: Enable services to publish and consume messages
 
+**Note**: For detailed client library architecture, language selection rationale, and integration patterns, see [RabbitMQ Client Library Design](../rabbitmq-client-library-design.md).
+
 **Tasks:**
 1. Create message schemas and event definitions
    ```typescript

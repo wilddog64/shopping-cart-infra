@@ -371,6 +371,8 @@ kubectl apply -f data-layer/
 
 **Timeline**: 4 stages, ~15-20 hours total effort
 
+**Client Library**: Go-based shared library with Python/Java wrappers (see [Client Library Design](docs/rabbitmq-client-library-design.md))
+
 For complete architecture, queue design, and implementation details, see [Message Queue Implementation Plan](docs/plans/message-queue-implementation.md).
 
 ---

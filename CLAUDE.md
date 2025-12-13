@@ -75,6 +75,13 @@ Separation provides:
 3. **Stage 3**: Application integration (publisher/consumer libraries) (6-8 hours)
 4. **Stage 4**: Monitoring & production readiness (4-6 hours)
 
+**Client Library Architecture:**
+- **Core**: Go library with Vault integration, connection management, pub/sub interfaces
+- **Distribution**: CLI tools, HTTP API, and gRPC API options
+- **Wrappers**: Python and Java wrappers for language-agnostic access
+- **Integration**: Cart service (Go native), Product Catalog (Python CLI), Order (Java CLI)
+- See [RabbitMQ Client Library Design](docs/rabbitmq-client-library-design.md) for complete architecture
+
 **Primary Use Cases:**
 - Order processing pipeline (payment → email → fulfillment)
 - Inventory updates → cache invalidation
