@@ -18,7 +18,7 @@ spec:
         app: rabbitmq
         component: message-queue
     spec:
-      serviceAccountName: default
+      serviceAccountName: rabbitmq
       terminationGracePeriodSeconds: 30
 
       initContainers:

@@ -37,6 +37,12 @@ StatefulSet with:
 - Liveness and readiness probes
 - Volume claim templates for persistent storage
 
+### 4. rbac.yaml
+RBAC resources for Kubernetes peer discovery:
+- **ServiceAccount**: `rabbitmq` for pod identity
+- **Role**: Permissions to list/get/watch pods and endpoints
+- **RoleBinding**: Connects ServiceAccount to Role
+
 ## Deployment
 
 ### Prerequisites
@@ -47,6 +53,17 @@ StatefulSet with:
    ```
 
 2. **k3d cluster with local-path StorageClass** (default in k3d)
+
+3. **Cluster Resources** (for 3-node HA cluster):
+   - **Minimum CPU**: 1.5 cores (3 replicas × 500m requests)
+   - **Recommended CPU**: 3+ cores for production workloads
+   - **Memory**: 3Gi (3 replicas × 1Gi requests)
+   - **Storage**: 30Gi total (3 replicas × 10Gi PVCs)
+
+**Note for single-node k3d clusters**: If your cluster has limited resources, scale down to 1 replica after deployment:
+```bash
+kubectl scale statefulset rabbitmq -n shopping-cart-data --replicas=1
+```
 
 ### Deploy RabbitMQ
 

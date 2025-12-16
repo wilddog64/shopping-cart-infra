@@ -1,0 +1,42 @@
+---
+# ServiceAccount for RabbitMQ pods
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rabbitmq
+  namespace: shopping-cart-data
+  labels:
+    app: rabbitmq
+    component: message-queue
+---
+# Role for Kubernetes peer discovery
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rabbitmq-peer-discovery
+  namespace: shopping-cart-data
+  labels:
+    app: rabbitmq
+    component: message-queue
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints", "pods"]
+    verbs: ["get", "list", "watch"]
+---
+# RoleBinding to grant permissions to RabbitMQ ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rabbitmq-peer-discovery
+  namespace: shopping-cart-data
+  labels:
+    app: rabbitmq
+    component: message-queue
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: rabbitmq-peer-discovery
+subjects:
+  - kind: ServiceAccount
+    name: rabbitmq
+    namespace: shopping-cart-data
