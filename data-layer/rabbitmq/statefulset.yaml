@@ -49,6 +49,9 @@ spec:
             - name: dist
               containerPort: 25672
               protocol: TCP
+            - name: prometheus
+              containerPort: 15692
+              protocol: TCP
 
           env:
             - name: MY_POD_NAME

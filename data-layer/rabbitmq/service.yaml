@@ -27,6 +27,10 @@ spec:
       port: 25672
       targetPort: 25672
       protocol: TCP
+    - name: prometheus
+      port: 15692
+      targetPort: 15692
+      protocol: TCP
   selector:
     app: rabbitmq
   publishNotReadyAddresses: true

@@ -8,7 +8,7 @@ metadata:
     component: message-queue
 data:
   enabled_plugins: |
-    [rabbitmq_management,rabbitmq_peer_discovery_k8s].
+    [rabbitmq_management,rabbitmq_peer_discovery_k8s,rabbitmq_prometheus].
 
   rabbitmq.conf: |
     # Clustering configuration
