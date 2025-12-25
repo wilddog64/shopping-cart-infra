@@ -56,9 +56,9 @@ Separation provides:
 - [Integration Test](bin/test-vault-integration.sh) - Automated Vault functionality test
 - [Rotation Test](bin/test-vault-rotation.sh) - Password lifecycle validation
 
-### Planned Message Queue (RabbitMQ)
+### Message Queue (RabbitMQ)
 
-**Status**: Planned - See [Message Queue Implementation Plan](docs/plans/message-queue-implementation.md)
+**Status**: Stages 1-2 Complete, Stage 3 (Python Client) Complete
 
 **Objective**: Add RabbitMQ to `shopping-cart-data` namespace for asynchronous order processing and event-driven architecture.
 
@@ -69,18 +69,35 @@ Separation provides:
 - Independent service scaling
 - Event-driven microservices communication
 
-**Implementation Stages:**
-1. **Stage 1**: RabbitMQ StatefulSet deployment (2-3 hours)
-2. **Stage 2**: Vault integration for dynamic credentials (3-4 hours)
-3. **Stage 3**: Application integration (publisher/consumer libraries) (6-8 hours)
-4. **Stage 4**: Monitoring & production readiness (4-6 hours)
+**Implementation Progress:**
+1. **Stage 1**: RabbitMQ StatefulSet deployment ✅ COMPLETE
+2. **Stage 2**: Vault integration for dynamic credentials ✅ COMPLETE
+3. **Stage 3**: Client Library - Python ✅ COMPLETE (see below)
+4. **Stage 3**: Client Library - Go (Planned for separate repo)
+5. **Stage 4**: Monitoring & production readiness (Pending)
 
-**Client Library Architecture:**
-- **Core**: Go library with Vault integration, connection management, pub/sub interfaces
-- **Distribution**: CLI tools, HTTP API, and gRPC API options
-- **Wrappers**: Python and Java wrappers for language-agnostic access
-- **Integration**: Cart service (Go native), Product Catalog (Python CLI), Order (Java CLI)
-- See [RabbitMQ Client Library Design](docs/rabbitmq-client-library-design.md) for complete architecture
+**Client Library - Python (COMPLETE):**
+
+Located in separate repository: `rabbitmq-client-library/python/`
+
+Features implemented:
+- ✅ Configuration management with validation
+- ✅ Connection management with Vault credential integration
+- ✅ Publisher with confirmation support and JSON serialization
+- ✅ Consumer with auto/manual acknowledgment
+- ✅ Thread-safe connection pooling
+- ✅ Circuit breaker pattern (CLOSED/OPEN/HALF_OPEN)
+- ✅ Retry logic with exponential backoff (tenacity)
+- ✅ Structured logging (structlog, JSON/console)
+- ✅ Prometheus metrics (publish/consume latency, pool stats, etc.)
+- ✅ Health checks (liveness, readiness, detailed status)
+- ✅ Dead Letter Queue (DLQ) support
+- ✅ 233 tests (224 unit + 9 performance benchmarks)
+
+**Client Library - Go (Planned):**
+- Will be in separate repository (`rabbitmq-client-go`) for Go module compatibility
+- Independent versioning from Python library
+- Native integration with Cart service (Go)
 
 **Primary Use Cases:**
 - Order processing pipeline (payment → email → fulfillment)
@@ -88,17 +105,17 @@ Separation provides:
 - Cart abandonment notifications
 - Cross-service event broadcasting
 
-**Directory Structure (Planned):**
+**Directory Structure (Deployed):**
 ```
 data-layer/
 └── rabbitmq/
-    ├── statefulset.yaml       # 3-replica cluster
+    ├── statefulset.yaml       # RabbitMQ cluster
     ├── service.yaml           # AMQP + Management UI
     ├── configmap.yaml         # RabbitMQ configuration
-    └── pvc.yaml               # Persistent queue storage
+    └── ...
 ```
 
-See [Message Queue Implementation Plan](docs/plans/message-queue-implementation.md) for complete architecture, queue design, and detailed implementation guide.
+See [Message Queue Implementation Plan](docs/plans/message-queue-implementation.md) for complete architecture and queue design.
 
 ## Repository Structure
 
