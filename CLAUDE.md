@@ -74,7 +74,8 @@ Separation provides:
 2. **Stage 2**: Vault integration for dynamic credentials ✅ COMPLETE
 3. **Stage 3**: Client Library - Python ✅ COMPLETE (see below)
 4. **Stage 3**: Client Library - Go (Planned for separate repo)
-5. **Stage 4**: Monitoring & production readiness (Pending)
+5. **Stage 3**: Client Library - Java (Planned for separate repo)
+6. **Stage 4**: Monitoring & production readiness (Pending)
 
 **Client Library - Python (COMPLETE):**
 
@@ -98,6 +99,11 @@ Features implemented:
 - Will be in separate repository (`rabbitmq-client-go`) for Go module compatibility
 - Independent versioning from Python library
 - Native integration with Cart service (Go)
+
+**Client Library - Java (Planned):**
+- Will be in separate repository (`rabbitmq-client-java`) for Maven/Gradle compatibility
+- Independent versioning from other libraries
+- Native integration with Order service (Java/Spring Boot)
 
 **Primary Use Cases:**
 - Order processing pipeline (payment → email → fulfillment)

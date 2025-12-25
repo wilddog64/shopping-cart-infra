@@ -43,6 +43,28 @@ The Go implementation will be in a separate repository for:
 - Go module compatibility (`go get github.com/user/rabbitmq-client-go`)
 - Native integration with Cart service (Go)
 
+### Java Library (Planned)
+
+**Repository**: `rabbitmq-client-java` (separate repository, not yet created)
+**Status**: Planned
+
+The Java implementation will be in a separate repository for:
+- Independent versioning from other libraries
+- Maven/Gradle compatibility
+- Native integration with Order service (Java/Spring Boot)
+- Spring Boot starter possible
+
+**Planned Features:**
+- Connection management with Vault credential integration
+- Publisher with confirmation support
+- Consumer with auto/manual acknowledgment
+- Connection pooling
+- Circuit breaker pattern (Resilience4j)
+- Retry logic with exponential backoff
+- Structured logging (SLF4J/Logback)
+- Micrometer metrics (Prometheus compatible)
+- Health checks (Spring Boot Actuator compatible)
+
 ---
 
 ## Original Design Document (Go-First Approach)
@@ -823,8 +845,9 @@ rabbitmq_credential_refreshes_total
 
 ---
 
-**Document Status**: Updated - Python Complete, Go Planned
+**Document Status**: Updated - Python Complete, Go & Java Planned
 **Last Updated**: 2025-12-24
 **Owner**: Platform Team
 **Python Library**: Complete (see `rabbitmq-client-library/python/`)
 **Go Library**: Planned (separate repository `rabbitmq-client-go`)
+**Java Library**: Planned (separate repository `rabbitmq-client-java`)

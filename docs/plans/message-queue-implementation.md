@@ -15,8 +15,9 @@ Add RabbitMQ message queue infrastructure to enable asynchronous order processin
 |-------|-------------|--------|
 | Stage 1 | RabbitMQ Infrastructure | ✅ COMPLETE |
 | Stage 2 | Vault Integration | ✅ COMPLETE |
-| Stage 3 | Client Library - Python | ✅ COMPLETE |
-| Stage 3 | Client Library - Go | 📋 PLANNED |
+| Stage 3a | Client Library - Python | ✅ COMPLETE |
+| Stage 3b | Client Library - Go | 📋 PLANNED |
+| Stage 3c | Client Library - Java | 📋 PLANNED |
 | Stage 4 | Monitoring & Production Readiness | 📋 PENDING |
 
 **Python Client Library**: Located in `rabbitmq-client-library/python/` - Production ready with 233 tests
@@ -313,6 +314,31 @@ Order Queue → Processing Fails (3x retry) → DLQ
 - Independent versioning from Python library
 - Go module compatibility (`go get github.com/user/rabbitmq-client-go`)
 - Follows Go community conventions
+
+---
+
+#### Stage 3c: Java Client Library 📋 PLANNED
+
+**Repository**: `rabbitmq-client-java` (separate repository, not yet created)
+**Status**: 📋 PLANNED
+
+**Planned Features:**
+- Connection management with Vault credential integration
+- Publisher with confirmation support
+- Consumer with auto/manual acknowledgment
+- Connection pooling
+- Circuit breaker pattern (Resilience4j)
+- Retry logic with exponential backoff
+- Structured logging (SLF4J/Logback)
+- Micrometer metrics (Prometheus compatible)
+- Health checks (Spring Boot Actuator compatible)
+- Native integration with Order service (Java/Spring Boot)
+
+**Why Separate Repository:**
+- Independent versioning from other libraries
+- Maven/Gradle compatibility
+- Follows Java community conventions
+- Spring Boot starter possible
 
 ---
 
@@ -621,7 +647,8 @@ If issues arise:
 4. ✅ ~~Proceed to Stage 2: Vault integration~~ COMPLETE
 5. ✅ ~~Stage 3a: Python client library~~ COMPLETE
 6. 📋 **Stage 3b**: Go client library (when Cart service integration needed)
-7. 📋 **Stage 4**: Monitoring & Production Readiness
+7. 📋 **Stage 3c**: Java client library (when Order service integration needed)
+8. 📋 **Stage 4**: Monitoring & Production Readiness
 
 ---
 
@@ -630,3 +657,4 @@ If issues arise:
 **Owner**: Platform Team
 **Python Library**: Complete (see `rabbitmq-client-library/python/`)
 **Go Library**: Planned (separate repository `rabbitmq-client-go`)
+**Java Library**: Planned (separate repository `rabbitmq-client-java`)
