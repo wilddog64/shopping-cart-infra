@@ -16,11 +16,15 @@ Add RabbitMQ message queue infrastructure to enable asynchronous order processin
 | Stage 1 | RabbitMQ Infrastructure | ✅ COMPLETE |
 | Stage 2 | Vault Integration | ✅ COMPLETE |
 | Stage 3a | Client Library - Python | ✅ COMPLETE |
-| Stage 3b | Client Library - Go | 📋 PLANNED |
-| Stage 3c | Client Library - Java | 📋 PLANNED |
+| Stage 3b | Client Library - Go | ✅ COMPLETE |
+| Stage 3c | Client Library - Java | ✅ COMPLETE |
+| Stage 3d | Client Library - .NET | 📋 PLANNED |
 | Stage 4 | Monitoring & Production Readiness | 📋 PENDING |
 
-**Python Client Library**: Located in `rabbitmq-client-library/python/` - Production ready with 233 tests
+**Client Libraries:**
+- Python: `rabbitmq-client-library/python/` - Production ready (233 tests)
+- Go: `rabbitmq-client-go/` - Production ready with CLI tools
+- Java: `rabbitmq-client-java/` - Production ready (Spring Boot 3.2)
 
 ## Architecture Overview
 
@@ -293,22 +297,30 @@ Order Queue → Processing Fails (3x retry) → DLQ
 
 ---
 
-#### Stage 3b: Go Client Library 📋 PLANNED
+#### Stage 3b: Go Client Library ✅ COMPLETE
 
-**Repository**: `rabbitmq-client-go` (separate repository, not yet created)
-**Status**: 📋 PLANNED
+**Repository**: `rabbitmq-client-go/`
+**Status**: ✅ COMPLETE - Production Ready
 
-**Planned Features:**
-- Connection management with Vault credential integration
-- Publisher with confirmation support
-- Consumer with auto/manual acknowledgment
-- Connection pooling with channel management
-- Circuit breaker pattern
-- Retry logic with exponential backoff
-- Structured logging (zap)
-- Prometheus metrics
-- Health checks
-- Native integration with Cart service (Go)
+**Implemented Features:**
+- ✅ Configuration management with environment variable support (`config.go`)
+- ✅ Connection management with Vault credential integration (`connection.go`)
+- ✅ Publisher with confirmation support and JSON serialization (`publisher.go`)
+- ✅ Consumer with auto/manual acknowledgment (`consumer.go`)
+- ✅ Thread-safe connection pooling with channel management (`pool.go`)
+- ✅ Circuit breaker pattern using sony/gobreaker (`circuit_breaker.go`)
+- ✅ Retry logic with exponential backoff and jitter (`retry.go`)
+- ✅ Structured logging with zap - JSON/console output (`logging.go`)
+- ✅ Prometheus metrics - publish/consume latency, pool stats (`metrics.go`)
+- ✅ Health checks - liveness, readiness, detailed status (`health.go`)
+- ✅ Dead Letter Queue (DLQ) support (`dlq.go`)
+- ✅ CLI tools: `sc-mq-publisher`, `sc-mq-consumer`
+- ✅ Kubernetes/k3s auto-detection for NodePort services
+
+**Test Coverage:**
+- ✅ Comprehensive unit tests for all components
+- ✅ Integration tests with real RabbitMQ
+- ✅ Performance benchmarks
 
 **Why Separate Repository:**
 - Independent versioning from Python library
@@ -317,28 +329,81 @@ Order Queue → Processing Fails (3x retry) → DLQ
 
 ---
 
-#### Stage 3c: Java Client Library 📋 PLANNED
+#### Stage 3c: Java Client Library ✅ COMPLETE
 
-**Repository**: `rabbitmq-client-java` (separate repository, not yet created)
-**Status**: 📋 PLANNED
+**Repository**: `rabbitmq-client-java/`
+**Status**: ✅ COMPLETE - Production Ready
 
-**Planned Features:**
-- Connection management with Vault credential integration
-- Publisher with confirmation support
-- Consumer with auto/manual acknowledgment
-- Connection pooling
-- Circuit breaker pattern (Resilience4j)
-- Retry logic with exponential backoff
-- Structured logging (SLF4J/Logback)
-- Micrometer metrics (Prometheus compatible)
-- Health checks (Spring Boot Actuator compatible)
-- Native integration with Order service (Java/Spring Boot)
+**Technology Stack:**
+- Java 21 (LTS with virtual threads)
+- Spring Boot 3.2
+- Spring AMQP for RabbitMQ
+- Spring Cloud Vault for credentials
+
+**Implemented Features:**
+- ✅ Configuration management with `@ConfigurationProperties` (`RabbitMQProperties.java`)
+- ✅ Connection management with Vault integration (`ConnectionManager.java`)
+- ✅ Static credentials support for non-Vault environments
+- ✅ Publisher with confirmation support and JSON serialization (`Publisher.java`)
+- ✅ Consumer with auto/manual acknowledgment (`Consumer.java`)
+- ✅ Batch publishing support (`BatchPublisher.java`)
+- ✅ Circuit breaker pattern using Resilience4j (`CircuitBreakerConfig.java`)
+- ✅ Retry logic with exponential backoff (`RetryConfig.java`)
+- ✅ Structured logging with SLF4J/Logback
+- ✅ Micrometer metrics - Prometheus compatible (`RabbitMQMetrics.java`)
+- ✅ Health checks - Spring Boot Actuator (`RabbitMQHealthIndicator.java`)
+- ✅ Dead Letter Queue (DLQ) support (`DLQManager.java`)
+- ✅ CLI tools: `sc-mq-publisher`, `sc-mq-consumer`
+- ✅ Spring Boot auto-configuration (`RabbitMQClientAutoConfiguration.java`)
+
+**Module Structure:**
+- `rabbitmq-client/` - Core library
+- `rabbitmq-cli/` - CLI tools
+- `rabbitmq-examples/` - Example applications
+
+**Test Coverage:**
+- ✅ Unit tests for core components
+- ✅ Demo examples working (`make demo`, `make cli-demo`)
 
 **Why Separate Repository:**
 - Independent versioning from other libraries
-- Maven/Gradle compatibility
-- Follows Java community conventions
-- Spring Boot starter possible
+- Maven compatibility
+- Follows Java/Spring community conventions
+- Spring Boot starter pattern
+
+---
+
+#### Stage 3d: .NET Client Library 📋 PLANNED
+
+**Repository**: `rabbitmq-client-dotnet/` (to be created)
+**Status**: 📋 PLANNED
+
+**Technology Stack:**
+- .NET 8 (LTS)
+- RabbitMQ.Client (official .NET client)
+- VaultSharp for Vault integration
+- Polly for resilience patterns
+- Microsoft.Extensions.* for DI and configuration
+
+**Planned Features:**
+- Configuration management with `IOptions<T>` pattern
+- Connection management with Vault credential integration
+- Publisher with confirmation support and JSON serialization
+- Consumer with auto/manual acknowledgment
+- Connection pooling with channel management
+- Circuit breaker pattern using Polly
+- Retry logic with exponential backoff using Polly
+- Structured logging with Microsoft.Extensions.Logging/Serilog
+- Prometheus metrics using prometheus-net
+- Health checks - ASP.NET Core Health Checks
+- Dead Letter Queue (DLQ) support
+- CLI tools using System.CommandLine
+
+**Why Separate Repository:**
+- Independent versioning from other libraries
+- NuGet package compatibility
+- Follows .NET community conventions
+- ASP.NET Core integration pattern
 
 ---
 
@@ -646,15 +711,19 @@ If issues arise:
 3. ✅ ~~Validate with simple pub/sub test~~ COMPLETE
 4. ✅ ~~Proceed to Stage 2: Vault integration~~ COMPLETE
 5. ✅ ~~Stage 3a: Python client library~~ COMPLETE
-6. 📋 **Stage 3b**: Go client library (when Cart service integration needed)
-7. 📋 **Stage 3c**: Java client library (when Order service integration needed)
-8. 📋 **Stage 4**: Monitoring & Production Readiness
+6. ✅ ~~Stage 3b: Go client library~~ COMPLETE
+7. ✅ ~~Stage 3c: Java client library~~ COMPLETE
+8. 📋 **Stage 3d**: .NET client library (for potential .NET microservices)
+9. 📋 **Stage 4**: Monitoring & Production Readiness
 
 ---
 
-**Document Status**: Updated - Stages 1-3a Complete
-**Last Updated**: 2025-12-24
+**Document Status**: Updated - Stages 1-3c Complete
+**Last Updated**: 2025-12-26
 **Owner**: Platform Team
-**Python Library**: Complete (see `rabbitmq-client-library/python/`)
-**Go Library**: Planned (separate repository `rabbitmq-client-go`)
-**Java Library**: Planned (separate repository `rabbitmq-client-java`)
+
+**Client Libraries:**
+- Python: ✅ Complete (see `rabbitmq-client-library/python/`)
+- Go: ✅ Complete (see `rabbitmq-client-go/`)
+- Java: ✅ Complete (see `rabbitmq-client-java/`)
+- .NET: 📋 Planned (repository `rabbitmq-client-dotnet/`)
