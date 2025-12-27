@@ -409,7 +409,10 @@ Order Queue → Processing Fails (3x retry) → DLQ
 - `tests/ShoppingCart.RabbitMQ.Tests/` - Unit tests
 
 **Test Coverage:**
-- ✅ 45 unit tests for configuration, options, and exceptions
+- ✅ 99 unit tests (configuration, options, circuit breaker, retry, metrics, vault)
+- ✅ 4 integration tests with Testcontainers
+- ✅ GitHub Actions CI/CD workflow
+- ✅ Jenkinsfile for Jenkins pipelines
 - ✅ Demo examples working
 
 **Why Separate Repository:**
