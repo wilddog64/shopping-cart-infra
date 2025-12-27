@@ -28,7 +28,9 @@ usage() {
     echo "  sustained     Sustained load (100 msgs/sec for 10 min)"
     echo "  stress        Stress test with ramp-up"
     echo "  trigger-alert Build queue to trigger alert (500 msgs/sec for 60s)"
-    echo "  cleanup       Clean up test queues"
+    echo "  purge         Purge all messages from test queue (keep queue)"
+    echo "  purge-all     Purge messages from ALL queues (use with caution)"
+    echo "  cleanup       Delete test queues and exchanges"
     echo "  status        Show RabbitMQ queue status"
     echo "  alerts        Show active Prometheus alerts"
     echo "  dashboard     Open Grafana dashboard (port-forward)"
@@ -147,6 +149,79 @@ open_prometheus() {
     kubectl port-forward -n monitoring svc/prometheus-operated 9090:9090
 }
 
+purge_queue() {
+    local queue="${1:-load-test-queue}"
+    echo -e "${BLUE}Purging queue: ${queue}${NC}"
+
+    if kubectl get pods -n shopping-cart-data 2>/dev/null | grep -q rabbitmq; then
+        # Get message count before purge
+        local before=$(kubectl exec -n shopping-cart-data rabbitmq-0 -- \
+            rabbitmqctl list_queues name messages --quiet 2>/dev/null | awk -v q="$queue" '$1==q {print $2}')
+
+        # Purge the queue
+        kubectl exec -n shopping-cart-data rabbitmq-0 -- \
+            rabbitmqctl purge_queue "$queue" 2>/dev/null
+
+        echo -e "${GREEN}✓ Purged ${before:-0} messages from ${queue}${NC}"
+    else
+        # Use management API
+        curl -s -X DELETE -u "${RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD}" \
+            "http://${RABBITMQ_HOST}:15672/api/queues/%2F/${queue}/contents" && \
+            echo -e "${GREEN}✓ Purged messages from ${queue}${NC}" || \
+            echo -e "${YELLOW}Failed to purge ${queue}${NC}"
+    fi
+}
+
+purge_all_queues() {
+    echo -e "${YELLOW}⚠ WARNING: This will purge ALL messages from ALL queues!${NC}"
+    echo ""
+    read -p "Are you sure? (yes/no): " confirm
+    if [[ "$confirm" != "yes" ]]; then
+        echo "Aborted."
+        return 1
+    fi
+
+    echo ""
+    echo -e "${BLUE}Purging all queues...${NC}"
+
+    if kubectl get pods -n shopping-cart-data 2>/dev/null | grep -q rabbitmq; then
+        # Get list of queues with message counts
+        kubectl exec -n shopping-cart-data rabbitmq-0 -- \
+            rabbitmqctl list_queues name messages --quiet 2>/dev/null | while read -r queue messages; do
+            if [[ -n "$queue" && "$messages" -gt 0 ]] 2>/dev/null; then
+                echo -n "  Purging $queue ($messages messages)... "
+                kubectl exec -n shopping-cart-data rabbitmq-0 -- \
+                    rabbitmqctl purge_queue "$queue" 2>/dev/null && echo "done" || echo "failed"
+            fi
+        done
+        echo -e "${GREEN}✓ All queues purged${NC}"
+    else
+        # Use management API
+        curl -s -u "${RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD}" \
+            "http://${RABBITMQ_HOST}:15672/api/queues" 2>/dev/null | \
+            python3 -c "
+import sys, json, urllib.request, base64
+
+queues = json.load(sys.stdin)
+auth = base64.b64encode('${RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD}'.encode()).decode()
+
+for q in queues:
+    name = q['name']
+    messages = q.get('messages', 0)
+    if messages > 0:
+        url = f\"http://${RABBITMQ_HOST}:15672/api/queues/%2F/{name}/contents\"
+        req = urllib.request.Request(url, method='DELETE')
+        req.add_header('Authorization', f'Basic {auth}')
+        try:
+            urllib.request.urlopen(req)
+            print(f'  Purged {name} ({messages} messages)')
+        except Exception as e:
+            print(f'  Failed to purge {name}: {e}')
+"
+        echo -e "${GREEN}✓ All queues purged${NC}"
+    fi
+}
+
 # Parse command
 COMMAND="${1:-}"
 shift || true
@@ -179,6 +254,12 @@ case "$COMMAND" in
         echo "This will publish ~30,000 messages without consumers."
         echo ""
         exec "$SCRIPT_DIR/load-test-rabbitmq.sh" burst -d 60 -r 500 "$@"
+        ;;
+    purge)
+        purge_queue "${1:-load-test-queue}"
+        ;;
+    purge-all)
+        purge_all_queues
         ;;
     cleanup)
         exec "$SCRIPT_DIR/load-test-rabbitmq.sh" cleanup
