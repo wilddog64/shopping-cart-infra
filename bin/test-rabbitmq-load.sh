@@ -28,7 +28,8 @@ usage() {
     echo "  sustained     Sustained load (100 msgs/sec for 10 min)"
     echo "  stress        Stress test with ramp-up"
     echo "  trigger-alert Build queue to trigger alert (500 msgs/sec for 60s)"
-    echo "  purge         Purge all messages from test queue (keep queue)"
+    echo "  purge [queue] Purge all messages from queue (default: load-test-queue)"
+    echo "  purge-count <n> [queue]  Purge first N messages from queue"
     echo "  purge-all     Purge messages from ALL queues (use with caution)"
     echo "  cleanup       Delete test queues and exchanges"
     echo "  status        Show RabbitMQ queue status"
@@ -46,10 +47,14 @@ usage() {
     echo "  RABBITMQ_USERNAME=$RABBITMQ_USERNAME"
     echo ""
     echo "Examples:"
-    echo "  $0 quick              # Quick sanity test"
-    echo "  $0 burst              # Full burst test"
-    echo "  $0 trigger-alert      # Build queue depth to trigger alert"
-    echo "  $0 status             # Check queue status"
+    echo "  $0 quick                    # Quick sanity test"
+    echo "  $0 burst                    # Full burst test"
+    echo "  $0 trigger-alert            # Build queue depth to trigger alert"
+    echo "  $0 status                   # Check queue status"
+    echo "  $0 purge                    # Purge all from load-test-queue"
+    echo "  $0 purge myqueue            # Purge all from myqueue"
+    echo "  $0 purge-count 100          # Purge first 100 from load-test-queue"
+    echo "  $0 purge-count 50 myqueue   # Purge first 50 from myqueue"
 }
 
 check_rabbitmq() {
@@ -97,26 +102,22 @@ show_alerts() {
     echo -e "${BLUE}=== Prometheus RabbitMQ Alerts ===${NC}"
     echo ""
 
-    # Check if we can reach Prometheus
-    local prom_url="http://localhost:9090"
+    # Query Prometheus directly via kubectl exec (no port-forward needed)
+    local prom_pod=$(kubectl get pods -n monitoring -l app.kubernetes.io/name=prometheus -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
 
-    if ! curl -s "${prom_url}/api/v1/rules" > /dev/null 2>&1; then
-        echo -e "${YELLOW}Prometheus not accessible at ${prom_url}${NC}"
-        echo ""
-        echo "To access Prometheus, run:"
-        echo "  kubectl port-forward -n monitoring svc/prometheus-operated 9090:9090"
-        echo ""
-        echo "Then run this command again."
+    if [[ -z "$prom_pod" ]]; then
+        echo -e "${YELLOW}Prometheus pod not found in monitoring namespace${NC}"
         return 1
     fi
 
-    # Fetch and display RabbitMQ alerts
-    curl -s "${prom_url}/api/v1/rules" 2>/dev/null | \
+    # Fetch alerts via kubectl exec
+    kubectl exec -n monitoring "$prom_pod" -- \
+        wget -qO- 'http://localhost:9090/api/v1/rules?type=alert' 2>/dev/null | \
         python3 -c "
 import sys, json
 data = json.load(sys.stdin)
-print(f\"{'Alert Name':<35} {'State':>10} {'Severity':>10}\")
-print('-' * 57)
+print(f\"{'Alert Name':<35} {'State':>10} {'Severity':>10}  {'Details'}\")
+print('-' * 80)
 for group in data.get('data', {}).get('groups', []):
     if 'rabbitmq' in group.get('name', '').lower():
         for rule in group.get('rules', []):
@@ -124,7 +125,14 @@ for group in data.get('data', {}).get('groups', []):
                 name = rule.get('name', '')[:34]
                 state = rule.get('state', 'unknown')
                 severity = rule.get('labels', {}).get('severity', '-')
-                print(f\"{name:<35} {state:>10} {severity:>10}\")
+                alerts = rule.get('alerts', [])
+                if alerts:
+                    for a in alerts:
+                        queue = a.get('labels', {}).get('queue', '')
+                        detail = f'queue={queue}' if queue else ''
+                        print(f\"{name:<35} {state:>10} {severity:>10}  {detail}\")
+                else:
+                    print(f\"{name:<35} {state:>10} {severity:>10}\")
 "
 }
 
@@ -170,6 +178,42 @@ purge_queue() {
             echo -e "${GREEN}✓ Purged messages from ${queue}${NC}" || \
             echo -e "${YELLOW}Failed to purge ${queue}${NC}"
     fi
+}
+
+purge_count() {
+    local count="${1:-10}"
+    local queue="${2:-load-test-queue}"
+
+    if ! [[ "$count" =~ ^[0-9]+$ ]]; then
+        echo -e "${YELLOW}Error: count must be a positive integer${NC}"
+        return 1
+    fi
+
+    echo -e "${BLUE}Purging first ${count} messages from queue: ${queue}${NC}"
+
+    # Get current message count
+    local before=$(kubectl exec -n shopping-cart-data rabbitmq-0 -- \
+        rabbitmqctl list_queues name messages --quiet 2>/dev/null | awk -v q="$queue" '$1==q {print $2}' 2>/dev/null || echo "0")
+
+    if [[ "$before" == "0" ]]; then
+        echo -e "${YELLOW}Queue ${queue} is empty${NC}"
+        return 0
+    fi
+
+    # Use Management API to get and ack N messages (removes them)
+    # ack_requeue_false = acknowledge and don't requeue (effectively deletes)
+    local purged=$(curl -s -X POST -u "${RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD}" \
+        -H "content-type: application/json" \
+        -d "{\"count\": ${count}, \"ackmode\": \"ack_requeue_false\", \"encoding\": \"auto\"}" \
+        "http://${RABBITMQ_HOST}:15672/api/queues/%2F/${queue}/get" 2>/dev/null | \
+        python3 -c "import sys,json; msgs=json.load(sys.stdin); print(len(msgs) if isinstance(msgs, list) else 0)" 2>/dev/null || echo "0")
+
+    # Get count after
+    local after=$(kubectl exec -n shopping-cart-data rabbitmq-0 -- \
+        rabbitmqctl list_queues name messages --quiet 2>/dev/null | awk -v q="$queue" '$1==q {print $2}' 2>/dev/null || echo "0")
+
+    echo -e "${GREEN}✓ Purged ${purged} messages from ${queue}${NC}"
+    echo -e "   Before: ${before}, After: ${after}"
 }
 
 purge_all_queues() {
@@ -257,6 +301,13 @@ case "$COMMAND" in
         ;;
     purge)
         purge_queue "${1:-load-test-queue}"
+        ;;
+    purge-count)
+        if [[ -z "$1" ]]; then
+            echo -e "${YELLOW}Usage: $0 purge-count <count> [queue]${NC}"
+            exit 1
+        fi
+        purge_count "$1" "${2:-load-test-queue}"
         ;;
     purge-all)
         purge_all_queues

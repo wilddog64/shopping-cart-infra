@@ -2,6 +2,12 @@
 
 This guide covers operational procedures for the RabbitMQ cluster in the shopping-cart platform.
 
+## Related Documentation
+
+- [Load Testing & Queue Management](rabbitmq-load-testing.md) - Load testing, alerting, purge commands
+- [Message Queue Implementation Plan](plans/message-queue-implementation.md) - Architecture design
+- [Client Library Design](rabbitmq-client-library-design.md) - Client library architecture
+
 ## Table of Contents
 
 1. [Cluster Overview](#cluster-overview)
@@ -88,6 +94,15 @@ kubectl exec -n shopping-cart-data rabbitmq-0 -- rabbitmqctl purge_queue <queue_
 kubectl exec -n shopping-cart-data rabbitmq-0 -- rabbitmqctl delete_queue <queue_name>
 ```
 
+**Makefile shortcuts** (see [Load Testing Guide](rabbitmq-load-testing.md) for more):
+
+```bash
+make rabbitmq-queues                    # List all queues
+make purge                              # Purge load-test-queue
+make purge-queue QUEUE=myqueue          # Purge specific queue
+make purge-count COUNT=100 QUEUE=myqueue # Purge first N messages
+```
+
 ### Exchange Management
 
 ```bash
@@ -135,6 +150,15 @@ kubectl port-forward -n shopping-cart-data svc/rabbitmq-management 15672:15672
 
 ## Monitoring & Alerting
 
+> **See also**: [Load Testing Guide](rabbitmq-load-testing.md) for alert details, testing procedures, and `make alerts` command.
+
+### Quick Alert Check
+
+```bash
+# View all RabbitMQ alerts (no port-forward needed)
+make alerts
+```
+
 ### Key Metrics to Watch
 
 | Metric | Warning Threshold | Critical Threshold |
@@ -148,8 +172,11 @@ kubectl port-forward -n shopping-cart-data svc/rabbitmq-management 15672:15672
 ### Grafana Dashboard
 
 Access the RabbitMQ dashboard:
-1. Open Grafana: `kubectl port-forward -n monitoring svc/grafana 3000:3000`
-2. Navigate to Dashboards → RabbitMQ Overview
+```bash
+make grafana
+# Opens http://localhost:3000
+# Navigate to Dashboards → RabbitMQ Overview
+```
 
 ### Prometheus Queries
 
@@ -291,44 +318,155 @@ kubectl scale deployment -n shopping-cart-apps order-consumer --replicas=5
 
 ## Backup & Recovery
 
-### Definitions Export (Recommended)
+### Quick Commands (Makefile)
 
 ```bash
-# Export definitions (exchanges, queues, bindings, users)
+# Create backup
+make rabbitmq-backup
+
+# List available backups
+make rabbitmq-backup-list
+
+# Restore from backup
+make rabbitmq-restore BACKUP=backups/rabbitmq/20241227-120000
+```
+
+### What's Backed Up
+
+| Component | Included | Notes |
+|-----------|----------|-------|
+| Exchanges | ✅ | Type, durability, auto-delete settings |
+| Queues | ✅ | Configuration only (not messages) |
+| Bindings | ✅ | Exchange-queue-routing key mappings |
+| Users | ✅ | Usernames, password hashes, tags |
+| Vhosts | ✅ | Virtual host definitions |
+| Policies | ✅ | HA policies, TTL, message limits |
+| Messages | ⚠️ | Optional, use `--messages` flag |
+
+### Create Backup
+
+```bash
+# Standard backup (definitions only)
+./bin/rabbitmq-backup.sh
+
+# Backup to specific directory
+./bin/rabbitmq-backup.sh /path/to/backup
+
+# Include messages (experimental, may be slow)
+./bin/rabbitmq-backup.sh --messages
+```
+
+**Output structure:**
+```
+backups/rabbitmq/20241227-120000/
+├── definitions.json     # Main backup file (queues, exchanges, bindings)
+├── cluster-status.json  # Cluster state snapshot
+├── queues.json          # Queue statistics
+├── exchanges.json       # Exchange list
+├── bindings.json        # Binding details
+├── policies.json        # Policies
+├── metadata.json        # Backup metadata
+└── messages/            # (only with --messages flag)
+    └── <queue>.json
+```
+
+### Restore from Backup
+
+```bash
+# List available backups
+./bin/rabbitmq-restore.sh --list
+
+# Dry run (show what would be restored)
+./bin/rabbitmq-restore.sh backups/rabbitmq/20241227-120000 --dry-run
+
+# Restore (with confirmation prompt)
+./bin/rabbitmq-restore.sh backups/rabbitmq/20241227-120000
+
+# Force restore (skip confirmation)
+./bin/rabbitmq-restore.sh backups/rabbitmq/20241227-120000 --force
+
+# Restore from archive
+./bin/rabbitmq-restore.sh backups/rabbitmq/rabbitmq-backup-20241227-120000.tar.gz
+```
+
+### Manual Backup/Restore
+
+If you prefer manual commands:
+
+```bash
+# Export definitions
 kubectl exec -n shopping-cart-data rabbitmq-0 -- \
   rabbitmqctl export_definitions /tmp/definitions.json
 
 # Copy to local machine
 kubectl cp shopping-cart-data/rabbitmq-0:/tmp/definitions.json ./rabbitmq-definitions.json
-```
-
-### Definitions Import
-
-```bash
-# Copy definitions to pod
-kubectl cp ./rabbitmq-definitions.json shopping-cart-data/rabbitmq-0:/tmp/definitions.json
 
 # Import definitions
+kubectl cp ./rabbitmq-definitions.json shopping-cart-data/rabbitmq-0:/tmp/definitions.json
 kubectl exec -n shopping-cart-data rabbitmq-0 -- \
   rabbitmqctl import_definitions /tmp/definitions.json
 ```
 
-### Message Backup
+### Message Backup (Advanced)
 
-For critical messages, use the Shovel plugin or application-level backup:
+Messages are NOT backed up by default because:
+- RabbitMQ is designed for transient message passing
+- Durable queues already persist messages to disk
+- Large queues can make backups very slow
+
+For critical message preservation:
+
+1. **Use Dead Letter Queues** - Failed messages are preserved
+2. **Application-level logging** - Log messages to external storage
+3. **Shovel plugin** - Mirror messages to backup queue/cluster
 
 ```bash
-# Enable shovel plugin if needed
-kubectl exec -n shopping-cart-data rabbitmq-0 -- rabbitmq-plugins enable rabbitmq_shovel
-
-# Configure shovel to backup queue (via management API)
+# Enable shovel plugin
+kubectl exec -n shopping-cart-data rabbitmq-0 -- \
+  rabbitmq-plugins enable rabbitmq_shovel
 ```
 
-### Disaster Recovery
+### Disaster Recovery Scenarios
 
-1. **Full cluster loss**: Restore from definitions export, messages are lost
-2. **Single node loss**: Automatic recovery if quorum maintained
-3. **Minority partition**: Reset minority nodes, rejoin cluster
+| Scenario | Recovery | Data Loss |
+|----------|----------|-----------|
+| Single pod restart | Automatic | None (durable queues) |
+| Single node loss | Automatic (if quorum) | None |
+| Minority partition | Reset & rejoin | Possible message loss |
+| Full cluster loss | Restore from backup | Messages lost |
+| Accidental queue delete | Restore definitions | Messages lost |
+
+### Backup Best Practices
+
+1. **Schedule regular backups**
+   ```bash
+   # Add to crontab for daily backups
+   0 2 * * * /path/to/shopping-cart-infra/bin/rabbitmq-backup.sh
+   ```
+
+2. **Store backups externally**
+   ```bash
+   # Copy to S3
+   aws s3 cp backups/rabbitmq/rabbitmq-backup-*.tar.gz s3://my-bucket/rabbitmq-backups/
+   ```
+
+3. **Test restores periodically**
+   ```bash
+   # Test restore in dry-run mode
+   ./bin/rabbitmq-restore.sh backups/rabbitmq/latest --dry-run
+   ```
+
+4. **Backup before changes**
+   ```bash
+   # Always backup before major changes
+   make rabbitmq-backup && make deploy-rabbitmq
+   ```
+
+5. **Retain multiple backups**
+   ```bash
+   # Keep last 7 days of backups
+   find backups/rabbitmq -name "*.tar.gz" -mtime +7 -delete
+   ```
 
 ---
 
