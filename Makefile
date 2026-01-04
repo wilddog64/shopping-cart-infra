@@ -407,6 +407,28 @@ debug-vault-unseal: ## Unseal Vault using stored key
 	@UNSEAL_KEY=$$(kubectl get secret -n vault vault-unseal -o jsonpath='{.data.unseal-key}' 2>/dev/null | base64 -d) && \
 		kubectl exec -n vault vault-0 -- vault operator unseal "$$UNSEAL_KEY" || echo "Failed to unseal"
 
+debug-disk-cleanup: ## Clean up disk space (podman, k3s, journal)
+	@echo "${BLUE}=== Disk Cleanup ===${RESET}"
+	@echo "Before: $$(df -h / | tail -1 | awk '{print $$5}')"
+	@echo ""
+	@echo "${BLUE}Cleaning podman...${RESET}"
+	@podman system prune -af 2>/dev/null || true
+	@echo ""
+	@echo "${BLUE}Cleaning k3s unused images...${RESET}"
+	@sudo k3s crictl rmi --prune 2>/dev/null || echo "Run with sudo for k3s cleanup"
+	@echo ""
+	@echo "${BLUE}Cleaning systemd journal...${RESET}"
+	@sudo journalctl --vacuum-size=50M 2>/dev/null || echo "Run with sudo for journal cleanup"
+	@echo ""
+	@echo "${BLUE}Cleaning npm/pip caches...${RESET}"
+	@rm -rf ~/.npm/_cacache 2>/dev/null || true
+	@rm -rf ~/.cache/pip 2>/dev/null || true
+	@echo ""
+	@echo "${BLUE}Cleaning old tar files...${RESET}"
+	@rm -f /tmp/shopping-cart-*.tar 2>/dev/null || true
+	@echo ""
+	@echo "${GREEN}After: $$(df -h / | tail -1 | awk '{print $$5}')${RESET}"
+
 ##@ Development
 
 info: ## Show environment info

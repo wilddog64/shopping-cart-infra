@@ -40,3 +40,4 @@ coverage/
 
 # Backups
 backups/
+.coverage
