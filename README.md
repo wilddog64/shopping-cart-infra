@@ -346,9 +346,9 @@ kubectl apply -f data-layer/
 
 ### Message Queue Infrastructure (RabbitMQ)
 
-**Status**: Planned (see [detailed implementation plan](docs/plans/message-queue-implementation.md))
+**Status**: Complete (Stages 1-4)
 
-**Objective**: Add RabbitMQ message queue to enable asynchronous order processing and event-driven architecture.
+**Objective**: RabbitMQ message queue for asynchronous order processing and event-driven architecture.
 
 **Benefits**:
 - Faster user response times (order creation < 100ms vs 500ms+ synchronous)
@@ -357,11 +357,29 @@ kubectl apply -f data-layer/
 - Better fault isolation
 - Event-driven microservices communication
 
-**Implementation Stages**:
-1. **Stage 1**: Infrastructure setup (RabbitMQ StatefulSet in `shopping-cart-data`)
-2. **Stage 2**: Vault integration (dynamic credential management)
-3. **Stage 3**: Application integration (publisher/consumer libraries)
-4. **Stage 4**: Monitoring & production readiness
+**Documentation**:
+- [Message Schemas & Event Contracts](docs/message-schemas.md) - Event definitions, queue design
+- [Message Queue Implementation Plan](docs/plans/message-queue-implementation.md) - Architecture and design
+- [RabbitMQ Operations Guide](docs/rabbitmq-operations.md) - Cluster operations, scaling, backup
+- [RabbitMQ Load Testing Guide](docs/rabbitmq-load-testing.md) - Load testing, alerting, queue management
+- [Client Library Design](docs/rabbitmq-client-library-design.md) - Client library architecture
+
+**Quick Start**:
+```bash
+# Check status
+make status
+
+# Run load test
+make load-test-quick
+
+# View alerts
+make alerts
+
+# Open management UIs
+make grafana      # Grafana dashboard
+make prometheus   # Prometheus metrics
+make rabbitmq-ui  # RabbitMQ management
+```
 
 **Use Cases**:
 - Order processing pipeline (payment, email, fulfillment)
@@ -369,11 +387,11 @@ kubectl apply -f data-layer/
 - Shopping cart abandonment notifications
 - Cross-service event broadcasting
 
-**Timeline**: 4 stages, ~15-20 hours total effort
-
-**Client Library**: Go-based shared library with Python/Java wrappers (see [Client Library Design](docs/rabbitmq-client-library-design.md))
-
-For complete architecture, queue design, and implementation details, see [Message Queue Implementation Plan](docs/plans/message-queue-implementation.md).
+**Client Libraries**: See separate repositories:
+- [rabbitmq-client-library](../rabbitmq-client-library) - Python implementation
+- [rabbitmq-client-go](../rabbitmq-client-go) - Go implementation
+- [rabbitmq-client-java](../rabbitmq-client-java) - Java implementation
+- [rabbitmq-client-dotnet](../rabbitmq-client-dotnet) - .NET implementation
 
 ---
 
