@@ -1,0 +1,52 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresql-payment-init
+  namespace: shopping-cart-data
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/instance: payment
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: shopping-cart
+    pci-scope: "true"
+data:
+  init-db.sql: |
+    -- Payment Service Database Initialization
+    -- Note: Schema is managed by Flyway migrations in the application
+    -- This script only creates the database and roles
+
+    -- Create application role for payment service
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'payment_app') THEN
+        CREATE ROLE payment_app WITH LOGIN PASSWORD 'changeme';
+      END IF;
+    END
+    $$;
+
+    -- Grant privileges
+    GRANT CONNECT ON DATABASE payments TO payment_app;
+    GRANT USAGE ON SCHEMA public TO payment_app;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO payment_app;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO payment_app;
+
+    -- Create read-only role for reporting/monitoring
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'payment_readonly') THEN
+        CREATE ROLE payment_readonly WITH LOGIN PASSWORD 'changeme';
+      END IF;
+    END
+    $$;
+
+    GRANT CONNECT ON DATABASE payments TO payment_readonly;
+    GRANT USAGE ON SCHEMA public TO payment_readonly;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO payment_readonly;
+
+    -- Log initialization
+    DO $$
+    BEGIN
+      RAISE NOTICE 'Payment database initialized successfully';
+    END
+    $$;

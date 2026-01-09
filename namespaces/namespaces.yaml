@@ -24,3 +24,19 @@ metadata:
     environment: dev
     tier: application
     istio-injection: enabled
+---
+# Payment Service Namespace (PCI DSS Isolated)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shopping-cart-payment
+  labels:
+    app.kubernetes.io/name: payment-service
+    app.kubernetes.io/part-of: shopping-cart
+    app.kubernetes.io/component: payment
+    environment: dev
+    tier: payment
+    pci-scope: "true"
+    istio-injection: enabled
+  annotations:
+    description: "Isolated namespace for PCI DSS compliant payment service"
