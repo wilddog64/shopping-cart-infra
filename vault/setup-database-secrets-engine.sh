@@ -31,6 +31,12 @@ PG_ORDERS_DB="orders"
 PG_ORDERS_ADMIN_USER="postgres"
 PG_ORDERS_ADMIN_PASSWORD="${POSTGRES_ORDERS_PASSWORD:-changeme456}"
 
+PG_PAYMENT_HOST="postgresql-payment.${NAMESPACE_DATA}.svc.cluster.local"
+PG_PAYMENT_PORT="5432"
+PG_PAYMENT_DB="payments"
+PG_PAYMENT_ADMIN_USER="postgres"
+PG_PAYMENT_ADMIN_PASSWORD="${POSTGRES_PAYMENT_PASSWORD:-changeme789}"
+
 # Redis configuration
 REDIS_CART_PASSWORD="${REDIS_CART_PASSWORD:-cartredis123}"
 REDIS_ORDERS_CACHE_PASSWORD="${REDIS_ORDERS_CACHE_PASSWORD:-orderscache789}"
@@ -152,6 +158,63 @@ print_success "orders-readwrite role created"
 
 echo ""
 echo "========================================="
+echo "PostgreSQL Payment Database Configuration"
+echo "========================================="
+echo ""
+
+# Configure PostgreSQL payment database (PCI DSS scope)
+print_info "Configuring PostgreSQL payment connection..."
+vault write database/config/postgresql-payment \
+    plugin_name=postgresql-database-plugin \
+    allowed_roles="payment-readwrite" \
+    connection_url="postgresql://{{username}}:{{password}}@${PG_PAYMENT_HOST}:${PG_PAYMENT_PORT}/${PG_PAYMENT_DB}?sslmode=disable" \
+    username="${PG_PAYMENT_ADMIN_USER}" \
+    password="${PG_PAYMENT_ADMIN_PASSWORD}" \
+    password_authentication=scram-sha-256
+print_success "PostgreSQL payment connection configured"
+
+# Create readwrite role for payment service
+print_info "Creating payment-readwrite role..."
+vault write database/roles/payment-readwrite \
+    db_name=postgresql-payment \
+    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' INHERIT; \
+GRANT CONNECT ON DATABASE ${PG_PAYMENT_DB} TO \"{{name}}\"; \
+GRANT USAGE ON SCHEMA public TO \"{{name}}\"; \
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"{{name}}\"; \
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO \"{{name}}\"; \
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO \"{{name}}\"; \
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO \"{{name}}\";" \
+    default_ttl="${DEFAULT_TTL}" \
+    max_ttl="${MAX_TTL}"
+print_success "payment-readwrite role created"
+
+echo ""
+echo "========================================="
+echo "Payment Gateway Static Secrets"
+echo "========================================="
+echo ""
+
+# Store payment gateway secrets
+print_info "Storing Stripe API credentials..."
+vault kv put secret/payment/stripe \
+    api_key="${STRIPE_API_KEY:-sk_test_placeholder}" \
+    webhook_secret="${STRIPE_WEBHOOK_SECRET:-whsec_placeholder}"
+print_success "Stripe credentials stored"
+
+print_info "Storing PayPal API credentials..."
+vault kv put secret/payment/paypal \
+    client_id="${PAYPAL_CLIENT_ID:-placeholder_client_id}" \
+    client_secret="${PAYPAL_CLIENT_SECRET:-placeholder_secret}"
+print_success "PayPal credentials stored"
+
+print_info "Storing encryption key..."
+# Generate or use provided AES-256 key (base64 encoded 32 bytes)
+ENCRYPTION_KEY="${PAYMENT_ENCRYPTION_KEY:-$(openssl rand -base64 32)}"
+vault kv put secret/payment/encryption key="${ENCRYPTION_KEY}"
+print_success "Encryption key stored"
+
+echo ""
+echo "========================================="
 echo "Redis Static Secrets Configuration"
 echo "========================================="
 echo ""
@@ -214,10 +277,16 @@ echo "PostgreSQL Database Roles:"
 echo "  - postgresql-products/products-readonly (SELECT only)"
 echo "  - postgresql-products/products-readwrite (CRUD operations)"
 echo "  - postgresql-orders/orders-readwrite (CRUD operations)"
+echo "  - postgresql-payment/payment-readwrite (CRUD operations) [PCI]"
 echo ""
 echo "Redis Static Secrets:"
 echo "  - secret/redis/cart"
 echo "  - secret/redis/orders-cache"
+echo ""
+echo "Payment Secrets (PCI DSS):"
+echo "  - secret/payment/stripe (API key, webhook secret)"
+echo "  - secret/payment/paypal (client ID, client secret)"
+echo "  - secret/payment/encryption (AES-256 key)"
 echo ""
 echo "Credential TTLs:"
 echo "  - Default: ${DEFAULT_TTL}"
