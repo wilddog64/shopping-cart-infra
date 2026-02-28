@@ -55,9 +55,73 @@ Application repo push
 
 Docs: `docs/cicd-architecture.md`, `docs/container-image-workflow.md`, `docs/github-actions-webhook-setup.md`
 
+## Re-Architecture Plan (2026-02-27)
+
+### Two-Cluster Split
+
+Current single-cluster deployment will be split into two clusters running on the same machine (or two laptops on the same WiFi):
+
+```
+infra cluster (OrbStack)          app cluster (k3s / Parallels Ubuntu)
+├── secrets/                      ├── shopping-cart/
+│   └── Vault + ESO               │   └── basket, order, payment, catalog
+├── identity/                     ├── data/
+│   └── LDAP + Keycloak           │   └── PostgreSQL, Redis, RabbitMQ
+├── cicd/                         └── observability/
+│   └── Jenkins + Argo CD             └── app-side metrics + logging
+├── observability/
+│   └── Prometheus + Grafana + Loki
+└── istio-system/
+```
+
+**Key decisions:**
+- Cluster name carries the `infra` context — no `infra-` prefix needed on namespaces
+- `istio-system` stays as-is — Istio hardcodes this namespace
+- `observability/` exists in both clusters — infra observes infra, app observes apps
+  (alternative: centralise on infra and ship app metrics there — TBD)
+- Laptops on same WiFi — use `.local` mDNS hostnames, no VPN needed
+  (`m4-air.local` for infra, Parallels VM IP for app cluster)
+
+### Authentication Re-Architecture
+
+Shopping cart apps currently have no centralised auth. Target state:
+- Keycloak (`identity/`) is the OIDC broker — apps never touch LDAP directly
+- LDAP is Keycloak's user store only
+- Frontend redirects to Keycloak for login, gets JWT
+- Backend services validate Bearer tokens against Keycloak JWKS endpoint
+- Keycloak client secrets live in Vault, ESO syncs them to app cluster
+
+### CI/CD with Two Clusters
+
+```
+Developer pushes code
+    ↓
+GitHub Actions (CI) — builds image, runs tests, pushes to registry,
+                      updates image tag in git manifests
+    ↓
+Argo CD (CD) on infra cluster — detects manifest change,
+                                syncs to app cluster
+```
+
+Alternatively: Jenkins on infra cluster handles CI, Argo CD handles CD.
+Both Jenkins and Argo CD already scaffolded in `cicd/`.
+
+### ESO Cross-Cluster
+
+ESO lives on **app cluster** — pulls secrets from Vault on **infra cluster**:
+- App cluster ESO authenticates to Vault via Kubernetes auth
+- Vault addr: `https://<infra-cluster-ip>:8200`
+- App services get DB credentials, Keycloak client secrets via k8s secrets
+
+---
+
 ## Pending Work
 
 - [ ] Stage 4: Wire observability (ServiceMonitors, dashboards) — in `observability-stack` repo
 - [ ] RabbitMQ load testing results integration — `docs/rabbitmq-load-testing.md` exists
 - [ ] Production promotion workflow documentation
 - [ ] Network policies for namespace isolation enforcement
+- [ ] **Namespace redesign** — migrate from tool-centric to function-centric namespaces (secrets, identity, cicd, observability)
+- [ ] **Two-cluster split** — infra on OrbStack, app on k3s/Parallels
+- [ ] **Auth re-architecture** — centralise auth through Keycloak OIDC, back-services validate JWT
+- [ ] **ESO cross-cluster** — ESO on app cluster pulling from Vault on infra cluster
