@@ -1,4 +1,3 @@
----
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -7,50 +6,12 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  description: Shopping Cart Platform Applications
-
-  # Source repositories for this project
+  description: Project for all shopping cart microservices and infrastructure
   sourceRepos:
-    - '*'  # Allow all repos - restrict in production
-
-  # Destination clusters and namespaces
+    - '*'
   destinations:
-    - namespace: shopping-cart-apps
-      server: https://kubernetes.default.svc
-    - namespace: shopping-cart-data
-      server: https://kubernetes.default.svc
-    - namespace: shopping-cart-payment
-      server: https://kubernetes.default.svc
-
-  # Allowed cluster-scoped resources
+    - namespace: '*'
+      server: '*'
   clusterResourceWhitelist:
-    - group: ''
-      kind: Namespace
-
-  # Allowed namespace-scoped resources
-  namespaceResourceWhitelist:
-    - group: ''
+    - group: '*'
       kind: '*'
-    - group: apps
-      kind: '*'
-    - group: autoscaling
-      kind: '*'
-    - group: networking.k8s.io
-      kind: '*'
-
-  # Roles for this project
-  roles:
-    - name: developer
-      description: Developer access to shopping-cart apps
-      policies:
-        - p, proj:shopping-cart:developer, applications, get, shopping-cart/*, allow
-        - p, proj:shopping-cart:developer, applications, sync, shopping-cart/*, allow
-      groups:
-        - shopping-cart-developers
-
-    - name: admin
-      description: Admin access to shopping-cart apps
-      policies:
-        - p, proj:shopping-cart:admin, applications, *, shopping-cart/*, allow
-      groups:
-        - shopping-cart-admins
