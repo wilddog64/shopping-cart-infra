@@ -15,7 +15,7 @@ spec:
 
   source:
     # Update this to your infrastructure repository URL
-    repoURL: https://github.com/your-org/shopping-cart-infra.git
+    repoURL: https://github.com/wilddog64/shopping-cart-infra.git
     targetRevision: HEAD
     path: argocd/applications
     directory:
