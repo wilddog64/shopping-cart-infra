@@ -14,12 +14,21 @@ spec:
 
   source:
     # Update this to your actual Git repository URL
-    repoURL: https://github.com/your-org/shopping-cart-product-catalog.git
+    repoURL: https://github.com/wilddog64/shopping-cart-product-catalog.git
     targetRevision: HEAD
     path: k8s/base
 
+    kustomize:
+      patches:
+        - patch: |-
+            - op: replace
+              path: /spec/replicas
+              value: 1
+          target:
+            kind: Deployment
+
   destination:
-    server: https://kubernetes.default.svc
+    server: https://10.211.55.14:6443
     namespace: shopping-cart-apps
 
   syncPolicy:
