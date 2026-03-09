@@ -3,7 +3,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: order-service
-  namespace: argocd
+  namespace: cicd
   labels:
     app.kubernetes.io/name: order-service
     app.kubernetes.io/part-of: shopping-cart

@@ -4,7 +4,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: shopping-cart-apps
-  namespace: argocd
+  namespace: cicd
   labels:
     app.kubernetes.io/name: shopping-cart-apps
     app.kubernetes.io/part-of: shopping-cart
@@ -24,7 +24,7 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: cicd
 
   syncPolicy:
     automated:
