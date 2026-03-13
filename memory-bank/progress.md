@@ -65,6 +65,13 @@
 - [x] `docs/plans/message-queue-implementation.md`
 - [x] Issue docs: 001 (RabbitMQ NodePort), 002 (Prometheus plugin)
 
+### CI Stabilization (fix/ci-stabilization branch)
+- [x] `shopping-cart-frontend`: TypeScript cleanup + `tsconfig` types (`5b69bd0`)
+- [x] `shopping-cart-product-catalog`: Dockerfile apt upgrades (`c745bd3`)
+- [x] `shopping-cart-payment`: GitHub Actions `./mvnw … -Dmaven.multiModuleProjectDirectory=.` (`7642f06` — local Maven wrapper download timed out)
+- [x] `rabbitmq-client-java`: GitHub Packages publish workflow + distributionManagement (`0f1c9b1`)
+- [x] `shopping-cart-order`: GitHub Packages repository + Maven settings/workflow update (`75c07bb` — local Maven unavailable)
+
 ## Pending
 
 - [ ] Stage 4: Observability integration (being done in `observability-stack` repo)

@@ -55,6 +55,13 @@ Application repo push
 
 Docs: `docs/cicd-architecture.md`, `docs/container-image-workflow.md`, `docs/github-actions-webhook-setup.md`
 
+### CI Stabilization (2026-03)
+- ✅ `shopping-cart-frontend` — TypeScript import cleanup + `tsconfig` types (`5b69bd0`)
+- ✅ `shopping-cart-product-catalog` — Dockerfile security upgrades (`c745bd3`)
+- ✅ `shopping-cart-payment` — GitHub Actions `./mvnw` invocations add `-Dmaven.multiModuleProjectDirectory=.` (`7642f06`, local wrapper download timed out; CI verification deferred to GitHub)
+- ✅ `rabbitmq-client-java` — GitHub Packages publish job, `distributionManagement`, Maven settings (`0f1c9b1`)
+- ✅ `shopping-cart-order` — GitHub Packages repository + workflow uses settings (`75c07bb`, local Maven unavailable)
+
 ## Re-Architecture Plan (2026-02-27)
 
 ### Two-Cluster Split
