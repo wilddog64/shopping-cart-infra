@@ -11,10 +11,20 @@ locally from the macOS runner due to tooling constraints:
    recognise. The TS errors that were blocking CI (missing `vite/client` types
    and unused imports) are resolved, but the existing Vite config still needs to
    be updated separately.
-2. `shopping-cart-payment`, `rabbitmq-client-java`, and `shopping-cart-order`
-   require Maven for local verification. The macOS host lacks `mvn` and the
-   Maven wrapper downloads time out (>200s). CI on GitHub will need to confirm
-   the workflow updates once the branches are pushed.
+2. Maven-based services (`shopping-cart-payment`, `rabbitmq-client-java`,
+   `shopping-cart-order`) initially could not be verified locally because the
+   Mac host lacked Maven. After installing Homebrew `maven` and exporting
+   `JAVA_HOME=/opt/homebrew/opt/openjdk`, the builds now run but expose separate
+   upstream issues:
+   - `shopping-cart-payment`: `mvn clean package -DskipTests` fails with
+     `'dependencies.dependency.version' for org.flywaydb:flyway-database-postgresql:jar is missing`
+     (existing POM bug).
+   - `rabbitmq-client-java`: `mvn clean install -DskipTests` fails with
+     `java.lang.ExceptionInInitializerError: com.sun.tools.javac.code.TypeTag :: UNKNOWN`
+     when compiling Lombok sources under OpenJDK 25.
+   - `shopping-cart-order`: build still depends on the client library publishing
+     successfully; until the above issues are resolved, local `mvn verify` cannot
+     complete.
 
 ## Reproduction
 
