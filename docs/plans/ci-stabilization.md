@@ -17,13 +17,16 @@ All PRs target `main`.
 - Any file not listed in each fix section
 - Do not add comments, refactor, or clean up surrounding code
 
+**Do NOT update memory-bank until the PR exists and CI is green.**
+**Do NOT fabricate commit SHAs — only record real SHAs after the commit exists on GitHub.**
+
 ---
 
 ## P1 Fix 1 — `shopping-cart-frontend`
 
 **Repo:** `wilddog64/shopping-cart-frontend`
 **Branch:** `fix/ci-stabilization`
-**Failure:** TypeScript `type-check` job — 5 errors in `tsc --noEmit`
+**Failure:** TypeScript `type-check` job — 9 errors in `tsc --noEmit`
 
 ### Exact errors from CI log
 
@@ -38,6 +41,9 @@ src/config/auth.ts(5,36): error TS2339: Property 'env' does not exist on type 'I
 src/config/auth.ts(6,31): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
 src/stores/cartStore.ts(3,21): error TS6196: 'CartItem' is declared but never used.
 ```
+
+3 are unused import errors (Fixes A/B/C below).
+6 are `ImportMeta.env` errors fixed by adding `vite/client` types (Fix D).
 
 ### Fix A — `src/components/layout/Header.tsx`
 
@@ -74,7 +80,8 @@ import type { Cart } from '@/types'
 
 ### Fix D — `tsconfig.json`
 
-Current `compilerOptions` has no `types` field. Add `"types": ["vite/client"]`:
+Current `compilerOptions` has no `types` field. Add `"types": ["vite/client"]` after
+the `"lib"` line. Do not change any other field.
 
 ```json
 {
@@ -84,13 +91,10 @@ Current `compilerOptions` has no `types` field. Add `"types": ["vite/client"]`:
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-    "types": ["vite/client"],
-    ...
+    "types": ["vite/client"]
   }
 }
 ```
-
-Add `"types": ["vite/client"]` after the `"lib"` line. Do not change any other field.
 
 ### Commit message
 
@@ -113,28 +117,27 @@ fix: resolve TypeScript type-check errors blocking CI
 
 ### Fix — `Dockerfile`
 
-Add `RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*` to both
-the builder stage and the runtime stage, immediately after each `FROM` line.
+Add `RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*` immediately
+after each `FROM` line in both stages — before any other RUN instruction.
 
-**Builder stage** — after `FROM python:3.11-slim as builder` + `WORKDIR /app`:
+**Builder stage** — insert immediately after `FROM python:3.11-slim as builder`:
 
 ```dockerfile
 FROM python:3.11-slim as builder
 
-WORKDIR /app
-
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
 ```
 
-**Runtime stage** — after `FROM python:3.11-slim`:
+**Runtime stage** — insert immediately after `FROM python:3.11-slim`:
 
 ```dockerfile
 FROM python:3.11-slim
 
-# Upgrade system packages to pick up security patches
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
@@ -148,8 +151,8 @@ Do not change any other part of the Dockerfile.
 ```
 fix: upgrade system packages in Docker image to resolve Trivy HIGH/CRITICAL CVEs
 
-Add apt-get upgrade to both builder and runtime stages so all system
-packages are patched before Trivy scan runs.
+Add apt-get upgrade immediately after each FROM so all system packages
+are patched before Trivy scan runs.
 ```
 
 ---
@@ -164,8 +167,7 @@ packages are patched before Trivy scan runs.
 ### Fix — `.github/workflows/ci.yaml`
 
 Add `-Dmaven.multiModuleProjectDirectory=.` to every `./mvnw` invocation.
-
-Find all lines containing `./mvnw` and append the flag. There are 3 occurrences:
+There are 3 occurrences:
 
 1. `run: ./mvnw clean package -DskipTests -B`
    → `run: ./mvnw clean package -DskipTests -B -Dmaven.multiModuleProjectDirectory=.`
@@ -194,20 +196,27 @@ in GitHub Actions environment.
 **Failure:** `shopping-cart-order` Build & Test fails:
 `Could not find artifact com.shoppingcart:rabbitmq-client:jar:1.0.0-SNAPSHOT`
 
-The `rabbitmq-client-java` repo (multi-module: parent `rabbitmq-client-parent`, submodule
-`rabbitmq-client` with groupId `com.shoppingcart` artifactId `rabbitmq-client`) exists but
-has no GitHub Packages publish step in its CI.
+### Why the publish job must run on `fix/ci-stabilization`
+
+The library must be published to GitHub Packages **before** `shopping-cart-order` CI can
+resolve it. Since all fixes live on `fix/ci-stabilization`, the publish job must trigger
+on pushes to that branch — not just `main`. Without this, `shopping-cart-order` CI will
+remain broken throughout the fix branch work.
 
 ### Fix A — `rabbitmq-client-java`: add publish job to `.github/workflows/java-ci.yml`
 
-Add a `publish` job after the existing `build` job:
+Add a `publish` job after the existing `build` job. The `if` condition covers both
+`fix/ci-stabilization` (for branch work) and `main` (for ongoing publishes):
 
 ```yaml
   publish:
     name: Publish to GitHub Packages
     runs-on: ubuntu-latest
     needs: [build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: >
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' ||
+       github.ref == 'refs/heads/fix/ci-stabilization')
     permissions:
       contents: read
       packages: write
@@ -224,7 +233,7 @@ Add a `publish` job after the existing `build` job:
           cache: maven
 
       - name: Publish to GitHub Packages
-        run: mvn -B deploy -DskipTests
+        run: mvn -B deploy -DskipTests -s .github/maven-settings.xml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -243,9 +252,7 @@ Add inside the `<project>` element (after `<description>`):
     </distributionManagement>
 ```
 
-### Fix C — `rabbitmq-client-java`: add `settings.xml` for authentication
-
-Create `.github/maven-settings.xml`:
+### Fix C — `rabbitmq-client-java`: add `.github/maven-settings.xml`
 
 ```xml
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
@@ -259,15 +266,7 @@ Create `.github/maven-settings.xml`:
 </settings>
 ```
 
-Update the publish job's `mvn deploy` command to use it:
-```yaml
-        run: mvn -B deploy -DskipTests -s .github/maven-settings.xml
-```
-
 ### Fix D — `shopping-cart-order`: add GitHub Packages repository to `pom.xml`
-
-In `shopping-cart-order/pom.xml`, add a `<repositories>` section so Maven can resolve
-the published `rabbitmq-client`:
 
 ```xml
     <repositories>
@@ -279,7 +278,7 @@ the published `rabbitmq-client`:
     </repositories>
 ```
 
-Also add `.github/maven-settings.xml` to `shopping-cart-order`:
+### Fix E — `shopping-cart-order`: add `.github/maven-settings.xml`
 
 ```xml
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
@@ -293,7 +292,9 @@ Also add `.github/maven-settings.xml` to `shopping-cart-order`:
 </settings>
 ```
 
-Update `shopping-cart-order/.github/workflows/ci.yml` build step:
+### Fix F — `shopping-cart-order`: update CI build step
+
+In `.github/workflows/ci.yml`, update the build step to use the settings file:
 ```yaml
       - name: Build with Maven
         run: mvn -B verify -s .github/maven-settings.xml
@@ -305,8 +306,8 @@ Update `shopping-cart-order/.github/workflows/ci.yml` build step:
 ```
 fix: add GitHub Packages publish job and distributionManagement
 
-Enables shopping-cart-order to resolve com.shoppingcart:rabbitmq-client
-as a Maven dependency from GitHub Packages.
+Publish job runs on fix/ci-stabilization and main so the library
+is available while CI fix work is in progress.
 ```
 
 **shopping-cart-order:**
@@ -321,20 +322,25 @@ from wilddog64/rabbitmq-client-java GitHub Packages.
 
 ## Execution Order
 
-1. P1 fixes first — `shopping-cart-frontend` and `shopping-cart-product-catalog` are independent
-2. P2 fixes — do `rabbitmq-client-java` publish first, then `shopping-cart-order`
-3. All PRs: `fix/ci-stabilization` → `main`
-4. After each PR merges, verify the CI run on `main` passes
+1. **P2 Fix 2 first** — push `rabbitmq-client-java` fix to `fix/ci-stabilization` so the
+   library publishes to GitHub Packages before `shopping-cart-order` CI runs
+2. P1 fixes — `shopping-cart-frontend` and `shopping-cart-product-catalog` are independent
+3. P2 Fix 1 — `shopping-cart-payment` is independent
+4. `shopping-cart-order` — after `rabbitmq-client-java` package is visible in GitHub Packages
+5. All PRs: `fix/ci-stabilization` → `main`
 
 ## Verification
 
 After each fix is committed on `fix/ci-stabilization`:
 - Run `gh pr create` targeting `main`
-- Confirm CI passes on the PR before merging
+- Confirm CI passes on the PR before moving to the next repo
 - Do NOT merge until CI is green
+- Share PR URL — this is required proof of completion
 
 ## Memory-bank update
 
-When complete, update `k3d-manager/memory-bank/progress.md` and `activeContext.md`:
-- Mark each P1/P2 item done with commit SHA
-- Note which CI jobs are now passing
+Only after all PRs are open and CI is green on each:
+- Update `k3d-manager/memory-bank/progress.md` and `activeContext.md` on branch `k3d-manager-v0.9.0`
+- Record real commit SHAs (verify each SHA exists via `gh api repos/.../git/commits/<sha>`)
+- Record PR numbers
+- Do NOT mark any item done until the PR CI is green
