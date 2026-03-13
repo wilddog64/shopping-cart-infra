@@ -61,6 +61,7 @@ Docs: `docs/cicd-architecture.md`, `docs/container-image-workflow.md`, `docs/git
 - ✅ `shopping-cart-payment` — GitHub Actions `./mvnw` invocations add `-Dmaven.multiModuleProjectDirectory=.` (`7642f06`, local wrapper download timed out; CI verification deferred to GitHub)
 - ✅ `rabbitmq-client-java` — GitHub Packages publish job, `distributionManagement`, Maven settings (`0f1c9b1`)
 - ✅ `shopping-cart-order` — GitHub Packages repository + workflow uses settings (`75c07bb`, local Maven unavailable)
+- ⚠️ Follow-ups tracked in `docs/issues/003-ci-stabilization-followups.md`
 
 ## Re-Architecture Plan (2026-02-27)
 
