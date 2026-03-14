@@ -65,7 +65,14 @@ Docs: `docs/cicd-architecture.md`, `docs/container-image-workflow.md`, `docs/git
 | `shopping-cart-payment` | ✅ **MERGED** 2026-03-14 | |
 | `shopping-cart-frontend` | ✅ **MERGED** 2026-03-14 | Copilot reviewed — no comments. |
 
+**Branch protection applied 2026-03-14** — all 5 repos: 1 required review + CI status check required, stale reviews dismissed, enforce_admins: false.
+
 - ⚠️ Follow-ups tracked in `docs/issues/003-ci-stabilization-followups.md`
+
+## Next Steps (Post-CI-Green)
+
+- [ ] P4 linters: golangci-lint (basket), ruff+mypy (product-catalog), Checkstyle+OWASP (order), Checkstyle+SpotBugs (payment)
+- [ ] Cut v0.1.0 release branches on all 6 repos
 
 ## Re-Architecture Plan (2026-02-27)
 
