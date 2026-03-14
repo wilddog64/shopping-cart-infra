@@ -59,11 +59,11 @@ Docs: `docs/cicd-architecture.md`, `docs/container-image-workflow.md`, `docs/git
 
 | Repo | Status | Notes |
 |---|---|---|
-| `rabbitmq-client-java` | ✅ CI green | Package published to GitHub Packages |
-| `shopping-cart-order` | ✅ CI green | PACKAGES_TOKEN fix resolved cross-repo auth |
-| `shopping-cart-product-catalog` | ✅ CI green | Awaiting merge |
-| `shopping-cart-payment` | 🔴 OPEN | `processRefund` signature mismatch in `RefundServiceIntegrationTest` — Codex Round 5 in progress (2026-03-14). Spec: none (inline task). Local Java 25 vs pom Java 21 mismatch — Codex must use CI not local mvn. |
-| `shopping-cart-frontend` | 🔴 OPEN | 4 `react-refresh/only-export-components` warnings in Badge/Button/test-utils. Spec: `docs/plans/ci-frontend-lint-fix.md`. Assigned to Codex after payment is green. |
+| `rabbitmq-client-java` | ✅ **MERGED** 2026-03-14 | Follow-up issue #2: gate publish on integration-test |
+| `shopping-cart-order` | ✅ **MERGED** 2026-03-14 | |
+| `shopping-cart-product-catalog` | ✅ **MERGED** 2026-03-14 | |
+| `shopping-cart-payment` | ✅ **MERGED** 2026-03-14 | |
+| `shopping-cart-frontend` | 🔴 OPEN | 4 `react-refresh/only-export-components` warnings in Badge/Button/test-utils. Spec: `docs/plans/ci-frontend-lint-fix.md`. Ready to assign to Codex. |
 
 - ⚠️ Follow-ups tracked in `docs/issues/003-ci-stabilization-followups.md`
 
