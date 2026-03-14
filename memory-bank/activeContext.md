@@ -71,8 +71,16 @@ Docs: `docs/cicd-architecture.md`, `docs/container-image-workflow.md`, `docs/git
 
 ## Next Steps (Post-CI-Green)
 
-- [ ] P4 linters: golangci-lint (basket), ruff+mypy (product-catalog), Checkstyle+OWASP (order), Checkstyle+SpotBugs (payment)
-- [ ] Cut v0.1.0 release branches on all 6 repos
+### P4 Linters — specs written 2026-03-14, assigned to Codex
+
+| Repo | Linter | Spec | Status |
+|---|---|---|---|
+| `shopping-cart-basket` | golangci-lint | `docs/plans/p4-linter-basket.md` | 🔴 pending |
+| `shopping-cart-product-catalog` | ruff + mypy | `docs/plans/p4-linter-product-catalog.md` | 🔴 pending |
+| `shopping-cart-order` | Checkstyle + OWASP | `docs/plans/p4-linter-order.md` | 🔴 pending |
+| `shopping-cart-payment` | Checkstyle + SpotBugs | `docs/plans/p4-linter-payment.md` | 🔴 pending |
+
+- [ ] Cut v0.1.0 release branches on all 6 repos (after linters green)
 
 ## Re-Architecture Plan (2026-02-27)
 
