@@ -1,154 +1,60 @@
 # Active Context: shopping-cart-infra
 
-## Current State
+## Current Status (2026-03-14)
 
-Infrastructure stages 1–3 complete. The data layer (PostgreSQL, Redis, RabbitMQ) and identity stack (Keycloak + OpenLDAP) are deployed and functional. Argo CD GitOps is active. Stage 4 (monitoring integration) is in progress via the `observability-stack` sister repository.
+Infrastructure stages 1–3 complete. CI stabilization complete across all 5 app repos. P4 linters merged to main on all 4 linted repos.
 
-## Implementation Progress
+## What's Implemented
 
 ### Data Layer
-- ✅ Stage 1: RabbitMQ StatefulSet deployed to `shopping-cart-data`
-- ✅ Stage 2: Vault integration for RabbitMQ dynamic credentials (via ESO)
-- ✅ PostgreSQL StatefulSets: products + orders
-- ✅ Redis StatefulSets: cart + orders-cache
-- ✅ Vault database secrets engine configured (products + orders roles)
-- ✅ ExternalSecrets for all components
+- RabbitMQ StatefulSet + Vault dynamic credentials (ESO)
+- PostgreSQL StatefulSets: products + orders
+- Redis StatefulSets: cart + orders-cache
+- Vault database secrets engine (products + orders roles)
+- ExternalSecrets for all components
 
 ### Application Layer
-- ✅ Helm chart for all 4 application services
-- ✅ Argo CD AppProject + Applications (dev + prod)
-- ✅ CI/CD pipeline: GitHub Actions → Jenkins → infra repo → Argo CD
+- Helm chart for all 4 application services
+- Argo CD AppProject + Applications (dev + prod)
+- CI/CD pipeline: GitHub Actions → Jenkins → infra repo → Argo CD
 
 ### Identity
-- ✅ Keycloak + OpenLDAP deployed in `identity` namespace
-- ✅ Realm `shopping-cart` configured with `frontend` client
+- Keycloak + OpenLDAP deployed in `identity` namespace
+- Realm `shopping-cart` configured with `frontend` client
 
-### Observability
-- ⏳ Being handled by `observability-stack` repo (Stage 4)
-- RabbitMQ Prometheus plugin enabled (port 15692 available for scraping)
+### CI Stabilization (2026-03-14) — ALL MERGED
+| Repo | Status |
+|---|---|
+| `rabbitmq-client-java` | ✅ MERGED |
+| `shopping-cart-order` | ✅ MERGED |
+| `shopping-cart-product-catalog` | ✅ MERGED |
+| `shopping-cart-payment` | ✅ MERGED |
+| `shopping-cart-frontend` | ✅ MERGED |
+
+### P4 Linters (2026-03-14) — ALL MERGED
+| Repo | Linter | Status |
+|---|---|---|
+| `shopping-cart-basket` | golangci-lint | ✅ MERGED |
+| `shopping-cart-product-catalog` | ruff + mypy | ✅ MERGED |
+| `shopping-cart-order` | Checkstyle + OWASP | ✅ MERGED |
+| `shopping-cart-payment` | Checkstyle + SpotBugs | ✅ MERGED |
+
+## Active Task
+
+- **v0.1.0 release branches** — cut on all 6 repos, add CHANGELOGs, tag after merge.
 
 ## Known Issues / Docs
 
-- `docs/issues/001-rabbitmq-nodeport.md` — RabbitMQ NodePort access issue
-- `docs/issues/002-rabbitmq-prometheus-plugin.md` — Prometheus plugin configuration
-- `docs/issues/deployment-troubleshooting.md` — Common deployment issues
-- `docs/vault-password-rotation.md` — Rotation testing guide
-- `docs/redis-password-rotation.md` — Redis password rotation
-
-## Active Message Schemas
-
-Documented in `docs/message-schemas.md`. Queues/exchanges:
-- `cart.checkout` — Basket → Order (checkout event)
-- `order.created` → Payment service
-- `order.paid` → fulfillment/email
-
-## CI/CD Flow (Current)
-
-```
-Application repo push
-  → GitHub Actions builds + pushes GHCR image
-  → Webhook triggers Jenkins
-  → Jenkins updates chart/values-dev.yaml image tag
-  → Git push to this repo
-  → Argo CD auto-syncs shopping-cart-dev app
-```
-
-Docs: `docs/cicd-architecture.md`, `docs/container-image-workflow.md`, `docs/github-actions-webhook-setup.md`
-
-### CI Stabilization (2026-03)
-
-| Repo | Status | Notes |
-|---|---|---|
-| `rabbitmq-client-java` | ✅ **MERGED** 2026-03-14 | Follow-up issue #2: gate publish on integration-test |
-| `shopping-cart-order` | ✅ **MERGED** 2026-03-14 | |
-| `shopping-cart-product-catalog` | ✅ **MERGED** 2026-03-14 | |
-| `shopping-cart-payment` | ✅ **MERGED** 2026-03-14 | |
-| `shopping-cart-frontend` | ✅ **MERGED** 2026-03-14 | Copilot reviewed — no comments. |
-
-**Branch protection applied 2026-03-14** — all 5 repos: 1 required review + CI status check required, stale reviews dismissed, enforce_admins: false.
-
-- ⚠️ Follow-ups tracked in `docs/issues/003-ci-stabilization-followups.md`
-
-## Next Steps (Post-CI-Green)
-
-### P4 Linters — specs written 2026-03-14, assigned to Codex
-
-| Repo | Linter | Spec | Status |
-|---|---|---|---|
-| `shopping-cart-basket` | golangci-lint | `docs/plans/p4-linter-basket.md` | 🔴 pending |
-| `shopping-cart-product-catalog` | ruff + mypy | `docs/plans/p4-linter-product-catalog.md` | 🔴 pending |
-| `shopping-cart-order` | Checkstyle + OWASP | `docs/plans/p4-linter-order.md` | 🔴 pending |
-| `shopping-cart-payment` | Checkstyle + SpotBugs | `docs/plans/p4-linter-payment.md` | 🔴 pending |
-
-- [ ] Cut v0.1.0 release branches on all 6 repos (after linters green)
-
-## Re-Architecture Plan (2026-02-27)
-
-### Two-Cluster Split
-
-Current single-cluster deployment will be split into two clusters running on the same machine (or two laptops on the same WiFi):
-
-```
-infra cluster (OrbStack)          app cluster (k3s / Parallels Ubuntu)
-├── secrets/                      ├── shopping-cart/
-│   └── Vault + ESO               │   └── basket, order, payment, catalog
-├── identity/                     ├── data/
-│   └── LDAP + Keycloak           │   └── PostgreSQL, Redis, RabbitMQ
-├── cicd/                         └── observability/
-│   └── Jenkins + Argo CD             └── app-side metrics + logging
-├── observability/
-│   └── Prometheus + Grafana + Loki
-└── istio-system/
-```
-
-**Key decisions:**
-- Cluster name carries the `infra` context — no `infra-` prefix needed on namespaces
-- `istio-system` stays as-is — Istio hardcodes this namespace
-- `observability/` exists in both clusters — infra observes infra, app observes apps
-  (alternative: centralise on infra and ship app metrics there — TBD)
-- Laptops on same WiFi — use `.local` mDNS hostnames, no VPN needed
-  (`m4-air.local` for infra, Parallels VM IP for app cluster)
-
-### Authentication Re-Architecture
-
-Shopping cart apps currently have no centralised auth. Target state:
-- Keycloak (`identity/`) is the OIDC broker — apps never touch LDAP directly
-- LDAP is Keycloak's user store only
-- Frontend redirects to Keycloak for login, gets JWT
-- Backend services validate Bearer tokens against Keycloak JWKS endpoint
-- Keycloak client secrets live in Vault, ESO syncs them to app cluster
-
-### CI/CD with Two Clusters
-
-```
-Developer pushes code
-    ↓
-GitHub Actions (CI) — builds image, runs tests, pushes to registry,
-                      updates image tag in git manifests
-    ↓
-Argo CD (CD) on infra cluster — detects manifest change,
-                                syncs to app cluster
-```
-
-Alternatively: Jenkins on infra cluster handles CI, Argo CD handles CD.
-Both Jenkins and Argo CD already scaffolded in `cicd/`.
-
-### ESO Cross-Cluster
-
-ESO lives on **app cluster** — pulls secrets from Vault on **infra cluster**:
-- App cluster ESO authenticates to Vault via Kubernetes auth
-- Vault addr: `https://<infra-cluster-ip>:8200`
-- App services get DB credentials, Keycloak client secrets via k8s secrets
-
----
+- `docs/issues/001-rabbitmq-nodeport.md` — RabbitMQ NodePort access
+- `docs/issues/002-rabbitmq-prometheus-plugin.md` — Prometheus plugin config
+- `docs/issues/003-ci-stabilization-followups.md` — CI follow-ups
+- `docs/issues/2026-03-14-owasp-nvd-api-key.md` — NVD API key needed for order repo
 
 ## Pending Work
 
-- [ ] Stage 4: Wire observability (ServiceMonitors, dashboards) — in `observability-stack` repo
-- [ ] RabbitMQ load testing results integration — `docs/rabbitmq-load-testing.md` exists
-- [ ] Production promotion workflow documentation
-- [ ] Network policies for namespace isolation enforcement
-- [ ] **Namespace redesign** — migrate from tool-centric to function-centric namespaces (secrets, identity, cicd, observability)
-- [ ] **Two-cluster split** — infra on OrbStack, app on k3s/Parallels
-- [ ] **Auth re-architecture** — centralise auth through Keycloak OIDC, back-services validate JWT
-- [ ] **ESO cross-cluster** — ESO on app cluster pulling from Vault on infra cluster
+- [ ] v0.1.0 release branches on all 6 repos
+- [ ] Stage 4: Wire observability (ServiceMonitors, dashboards)
+- [ ] Namespace redesign (function-centric)
+- [ ] Two-cluster split (infra on OrbStack, app on k3s/Parallels)
+- [ ] Auth re-architecture (centralise through Keycloak OIDC)
+- [ ] ESO cross-cluster (app cluster pulling from Vault on infra cluster)
