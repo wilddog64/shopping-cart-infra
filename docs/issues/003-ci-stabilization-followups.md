@@ -47,3 +47,13 @@ npm run build  # fails with TS2769 in vite.config.ts ("test" property)
 - Run the Maven workflows on an environment with Maven installed (or rely on
   GitHub Actions CI) to confirm the `-Dmaven.multiModuleProjectDirectory=.` and
   GitHub Packages publishing changes.
+
+### 2026-03-14 — `shopping-cart-payment` tests still reference legacy API
+
+- After round 4 fixes (GitHub Packages repo, Maven settings, missing testcontainers
+  dependency, stub exceptions) the payment service now compiles but the CI run
+  fails in `RefundServiceIntegrationTest`. The tests still call the old
+  `refundService.processRefund(paymentId, amount, reason, null)` signature and
+  expect a `getRefundsByPaymentId` helper that no longer exists. The production
+  method requires `(paymentId, amount, reason, userId, correlationId)`, so the
+  test suite must be updated before CI can pass.
