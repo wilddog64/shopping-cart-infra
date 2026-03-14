@@ -63,7 +63,7 @@ Docs: `docs/cicd-architecture.md`, `docs/container-image-workflow.md`, `docs/git
 | `shopping-cart-order` | ✅ **MERGED** 2026-03-14 | |
 | `shopping-cart-product-catalog` | ✅ **MERGED** 2026-03-14 | |
 | `shopping-cart-payment` | ✅ **MERGED** 2026-03-14 | |
-| `shopping-cart-frontend` | 🔴 OPEN | 4 `react-refresh/only-export-components` warnings in Badge/Button/test-utils. Spec: `docs/plans/ci-frontend-lint-fix.md`. Ready to assign to Codex. |
+| `shopping-cart-frontend` | ✅ **MERGED** 2026-03-14 | Copilot reviewed — no comments. |
 
 - ⚠️ Follow-ups tracked in `docs/issues/003-ci-stabilization-followups.md`
 
