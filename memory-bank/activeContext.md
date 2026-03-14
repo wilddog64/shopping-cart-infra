@@ -56,11 +56,15 @@ Application repo push
 Docs: `docs/cicd-architecture.md`, `docs/container-image-workflow.md`, `docs/github-actions-webhook-setup.md`
 
 ### CI Stabilization (2026-03)
-- ✅ `shopping-cart-frontend` — TypeScript import cleanup + `tsconfig` types (`5b69bd0`)
-- ✅ `shopping-cart-product-catalog` — Dockerfile security upgrades (`c745bd3`)
-- ✅ `shopping-cart-payment` — GitHub Actions `./mvnw` invocations add `-Dmaven.multiModuleProjectDirectory=.` (`7642f06`, local wrapper download timed out; CI verification deferred to GitHub)
-- ✅ `rabbitmq-client-java` — GitHub Packages publish job, `distributionManagement`, Maven settings (`0f1c9b1`)
-- ✅ `shopping-cart-order` — GitHub Packages repository + workflow uses settings (`75c07bb`, local Maven unavailable)
+
+| Repo | Status | Notes |
+|---|---|---|
+| `rabbitmq-client-java` | ✅ CI green | Package published to GitHub Packages |
+| `shopping-cart-order` | ✅ CI green | PACKAGES_TOKEN fix resolved cross-repo auth |
+| `shopping-cart-product-catalog` | ✅ CI green | Awaiting merge |
+| `shopping-cart-payment` | 🔴 OPEN | `processRefund` signature mismatch in `RefundServiceIntegrationTest` — Codex Round 5 in progress (2026-03-14). Spec: none (inline task). Local Java 25 vs pom Java 21 mismatch — Codex must use CI not local mvn. |
+| `shopping-cart-frontend` | 🔴 OPEN | 4 `react-refresh/only-export-components` warnings in Badge/Button/test-utils. Spec: `docs/plans/ci-frontend-lint-fix.md`. Assigned to Codex after payment is green. |
+
 - ⚠️ Follow-ups tracked in `docs/issues/003-ci-stabilization-followups.md`
 
 ## Re-Architecture Plan (2026-02-27)
