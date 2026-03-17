@@ -27,9 +27,16 @@ spec:
               value: 1
           target:
             kind: Deployment
+        - patch: |-
+            - op: add
+              path: /spec/template/spec/imagePullSecrets
+              value:
+                - name: ghcr-pull-secret
+          target:
+            kind: Deployment
 
   destination:
-    server: https://10.211.55.14:6443
+    server: https://host.k3d.internal:6443
     namespace: shopping-cart-payment
 
   syncPolicy:
