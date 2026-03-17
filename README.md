@@ -1,7 +1,6 @@
 # Shopping Cart Infrastructure Repository
 
 **Repository Type:** Implementation
-**Architecture Reference:** [shopping-cart blueprint repository](https://github.com/user/shopping-cart)
 
 ## Overview
 
@@ -28,13 +27,7 @@ This repository provides:
 
 ## Architecture Reference
 
-For detailed architecture documentation, design decisions, and planning documents, see the **[shopping-cart blueprint repository](https://github.com/user/shopping-cart)**.
-
-Key blueprint documents:
-- `docs/plans/hybrid-architecture-plan.md` - Complete architecture specification
-- `docs/implementation-priority.md` - Phase-by-phase implementation plan
-- `docs/repository-setup-guide.md` - Multi-repo setup instructions
-- `docs/cicd-guide.md` - CI/CD pipeline configuration
+For detailed architecture documentation, design decisions, and GitOps patterns, see **[docs/architecture.md](docs/architecture.md)**.
 
 ## Repository Structure
 
@@ -411,9 +404,9 @@ Apache 2.0
 
 ## Related Repositories
 
-- **Blueprint/Architecture:** [shopping-cart](https://github.com/user/shopping-cart)
 - **Application Services:**
-  - [shopping-cart-frontend](https://github.com/user/shopping-cart-frontend)
-  - [shopping-cart-product-catalog](https://github.com/user/shopping-cart-product-catalog)
-  - [shopping-cart-cart](https://github.com/user/shopping-cart-cart)
-  - [shopping-cart-order](https://github.com/user/shopping-cart-order)
+  - [shopping-cart-frontend](https://github.com/wilddog64/shopping-cart-frontend)
+  - [shopping-cart-product-catalog](https://github.com/wilddog64/shopping-cart-product-catalog)
+  - [shopping-cart-order](https://github.com/wilddog64/shopping-cart-order)
+  - [shopping-cart-payment](https://github.com/wilddog64/shopping-cart-payment)
+  - [shopping-cart-basket](https://github.com/wilddog64/shopping-cart-basket)
