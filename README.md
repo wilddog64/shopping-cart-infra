@@ -218,7 +218,6 @@ This repository integrates with GitHub Actions and Jenkins for automated contain
 ### Documentation
 - **[Container Image Workflow Guide](docs/container-image-workflow.md)** - Complete guide for building and pushing images to GHCR
 - **[GitHub Actions & Jenkins Webhook Setup](docs/github-actions-webhook-setup.md)** - Step-by-step integration instructions
-- **[Examples Directory](examples/README.md)** - Dockerfiles, GitHub Actions templates, and quick start guide
 
 ### Automation Scripts
 Located in `bin/`:

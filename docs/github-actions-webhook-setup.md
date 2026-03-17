@@ -61,12 +61,8 @@ cd shopping-cart-product-catalog
 # Create workflows directory
 mkdir -p .github/workflows
 
-# Copy the workflow template
-cp ../shopping-cart-infra/examples/github-actions/build-push.yml .github/workflows/
-
-# Or use curl to download directly
-curl -o .github/workflows/build-push.yml \
-  https://raw.githubusercontent.com/YOUR_USERNAME/shopping-cart-infra/main/examples/github-actions/build-push.yml
+# The reusable workflow lives in shopping-cart-infra — reference it directly
+# See .github/workflows/build-push-deploy.yml in shopping-cart-infra for the template
 ```
 
 ### Step 2: Customize Workflow for Your Service

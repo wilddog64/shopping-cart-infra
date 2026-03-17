@@ -23,40 +23,41 @@
 
 The shopping cart platform is a GitOps-driven microservices system running across two Kubernetes clusters. The infra cluster hosts platform services (secrets, identity, CI/CD). The app cluster hosts the application workloads.
 
-```
-┌─────────────────────────────────────────────────┐
-│           M2 Air — OrbStack                     │
-│                                                  │
-│   Infra Cluster (k3d)                           │
-│   ├── secrets/     Vault + ESO                  │
-│   ├── identity/    OpenLDAP + Keycloak           │
-│   ├── cicd/        ArgoCD  (+Jenkins optional)  │
-│   ├── istio-system Istio                        │
-│   └── cert-manager cert-manager                 │
-│                         │                        │
-│          SSH tunnel      │ host.k3d.internal:6443│
-│   ssh -fNL 0.0.0.0:6443 │                        │
-└─────────────────────────┼────────────────────────┘
-                          │
-┌─────────────────────────▼────────────────────────┐
-│           Ubuntu VM — Parallels                  │
-│                                                  │
-│   App Cluster (k3s)                             │
-│   ├── shopping-cart-apps/                        │
-│   │   ├── basket-service    (Go)                │
-│   │   ├── order-service     (Java)              │
-│   │   ├── product-catalog   (Python)            │
-│   │   └── frontend          (React)             │
-│   ├── shopping-cart-payment/  [PCI-scope]        │
-│   │   └── payment-service   (Go)                │
-│   └── shopping-cart-data/                        │
-│       ├── postgresql-products                    │
-│       ├── postgresql-orders                      │
-│       ├── postgresql-payment                     │
-│       ├── redis-cart                             │
-│       ├── redis-orders-cache                     │
-│       └── rabbitmq                              │
-└──────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph M2Air["M2 Air — OrbStack"]
+        subgraph InfraCluster["Infra Cluster (k3d)"]
+            secrets["secrets/\nVault + ESO"]
+            identity["identity/\nOpenLDAP + Keycloak"]
+            cicd["cicd/\nArgoCD + Jenkins (optional)"]
+            istio["istio-system/\nIstio"]
+            certmgr["cert-manager/\ncert-manager"]
+        end
+    end
+
+    subgraph Ubuntu["Ubuntu VM — Parallels"]
+        subgraph AppCluster["App Cluster (k3s)"]
+            subgraph sc_apps["shopping-cart-apps/"]
+                basket["basket-service (Go)"]
+                order["order-service (Java)"]
+                catalog["product-catalog (Python)"]
+                frontend["frontend (React)"]
+            end
+            subgraph sc_payment["shopping-cart-payment/ — PCI scope"]
+                payment_svc["payment-service (Go)"]
+            end
+            subgraph sc_data["shopping-cart-data/"]
+                pg_products["postgresql-products"]
+                pg_orders["postgresql-orders"]
+                pg_payment["postgresql-payment"]
+                redis_cart["redis-cart"]
+                redis_orders["redis-orders-cache"]
+                rabbitmq["rabbitmq"]
+            end
+        end
+    end
+
+    InfraCluster -->|"SSH tunnel\nhost.k3d.internal:6443"| AppCluster
 ```
 
 **Design principles:**
@@ -151,17 +152,20 @@ ApplicationSet is the right choice when you have many services with identical st
 
 All shopping cart deployments are managed through a two-level ArgoCD hierarchy:
 
-```
-ArgoCD (cicd ns — infra cluster)
-│
-└── shopping-cart-apps  [root Application]
-    │   source: shopping-cart-infra/argocd/applications/
-    │   destination: infra cluster (kubernetes.default.svc)
-    │
-    ├── basket-service      → shopping-cart-basket.git / k8s/base  → shopping-cart-apps ns
-    ├── order-service       → shopping-cart-order.git  / k8s/base  → shopping-cart-apps ns
-    ├── product-catalog     → shopping-cart-product-catalog.git / k8s/base → shopping-cart-apps ns
-    └── payment-service     → shopping-cart-payment.git / k8s/base → shopping-cart-payment ns
+```mermaid
+graph TD
+    ArgoCD["ArgoCD\ncicd ns — infra cluster"]
+    root["shopping-cart-apps\nroot Application\nsource: argocd/applications/"]
+    basket["basket-service\nshopping-cart-basket.git/k8s/base\n→ shopping-cart-apps ns"]
+    order["order-service\nshopping-cart-order.git/k8s/base\n→ shopping-cart-apps ns"]
+    catalog["product-catalog\nshopping-cart-product-catalog.git/k8s/base\n→ shopping-cart-apps ns"]
+    pay["payment-service\nshopping-cart-payment.git/k8s/base\n→ shopping-cart-payment ns"]
+
+    ArgoCD --> root
+    root --> basket
+    root --> order
+    root --> catalog
+    root --> pay
 ```
 
 The root Application (`shopping-cart-apps`) watches the `argocd/applications/` directory in this repo and creates or deletes child Applications automatically when manifests are added or removed.
@@ -186,20 +190,16 @@ Scope this down for a shared or production cluster — restrict `sourceRepos` to
 
 ### How image updates flow
 
-```
-Developer pushes to main on any app repo
-        │
-        ▼
-GitHub Actions builds + pushes image to ghcr.io
-        │
-        ▼  (ArgoCD polls targetRevision: HEAD every ~3 min)
-ArgoCD detects pod spec drift in k8s/base/
-        │
-        ▼
-ArgoCD applies updated Deployment to Ubuntu k3s via SSH tunnel
-        │
-        ▼
-Pod pulls new image from ghcr.io — rolling update
+```mermaid
+graph TD
+    A["Developer pushes to main\non any app repo"]
+    B["GitHub Actions\nbuilds + pushes image to ghcr.io"]
+    C["ArgoCD polls targetRevision: HEAD\nevery ~3 min"]
+    D["ArgoCD detects pod spec drift\nin k8s/base/"]
+    E["ArgoCD applies updated Deployment\nto Ubuntu k3s via SSH tunnel"]
+    F["Pod pulls new image from ghcr.io\nrolling update"]
+
+    A --> B --> C --> D --> E --> F
 ```
 
 No image tag update step is required. ArgoCD tracks `HEAD` on each app repo directly. There is no intermediate Helm values file or yq commit step.
@@ -266,13 +266,18 @@ Each application repository has its own CI workflow triggered on push to `main` 
 
 ### Standard pipeline stages
 
-```
-push to main / PR opened
-        │
-        ├── lint          language-specific linter
-        ├── test          unit tests
-        ├── vuln-scan     language-specific scanner (see table below)
-        └── build+push    docker build → ghcr.io (main branch only)
+```mermaid
+graph LR
+    push["push to main\n/ PR opened"]
+    lint["lint\nlanguage-specific"]
+    test["test\nunit tests"]
+    vuln["vuln-scan\nlanguage-specific scanner"]
+    build["build+push\ndocker → ghcr.io\nmain branch only"]
+
+    push --> lint
+    push --> test
+    push --> vuln
+    push --> build
 ```
 
 | Service | Language | Vuln scanner |
@@ -299,33 +304,22 @@ All images push to `ghcr.io/wilddog64/<service-name>:<sha>`. ArgoCD pulls from t
 
 ### Architecture
 
-```
-Vault (secrets ns — infra cluster)
-    │
-    ├── KV secrets engine (kv-v2)
-    │   ├── secret/redis/cart           → Redis cart password
-    │   ├── secret/redis/orders-cache   → Redis orders-cache password
-    │   ├── secret/payment/gateway      → Payment gateway credentials
-    │   └── secret/payment/encryption   → Encryption key
-    │
-    ├── Database secrets engine
-    │   ├── database/creds/products-readonly  → dynamic PostgreSQL creds (TTL 1h)
-    │   ├── database/creds/orders-readonly    → dynamic PostgreSQL creds (TTL 1h)
-    │   └── database/creds/payment-readonly   → dynamic PostgreSQL creds (TTL 1h)
-    │
-    └── Auth — Kubernetes auth
-        └── ESO ServiceAccount JWT → eso-reader policy
+```mermaid
+graph TD
+    Vault["Vault\nsecrets ns — infra cluster"]
+    KV["KV secrets engine (kv-v2)\nsecret/redis/cart\nsecret/redis/orders-cache\nsecret/payment/gateway\nsecret/payment/encryption"]
+    DB["Database secrets engine\ndatabase/creds/products-readonly TTL 1h\ndatabase/creds/orders-readonly TTL 1h\ndatabase/creds/payment-readonly TTL 1h"]
+    Auth["Kubernetes auth\nESO ServiceAccount JWT → eso-reader policy"]
+    ESO["ESO\nsecrets ns — infra cluster"]
+    ES["ExternalSecrets\nshopping-cart-data + shopping-cart-payment ns\npostgres-* / redis-* / payment-* externalsecrets"]
 
-ESO (secrets ns — infra cluster)
-    │
-    └── ExternalSecrets (shopping-cart-data / shopping-cart-payment ns — app cluster)
-        ├── postgres-products-externalsecret
-        ├── postgres-orders-externalsecret
-        ├── postgres-payment-externalsecret
-        ├── redis-cart-externalsecret
-        ├── redis-orders-cache-externalsecret
-        ├── payment-gateway-externalsecret
-        └── payment-encryption-externalsecret
+    Vault --> KV
+    Vault --> DB
+    Vault --> Auth
+    Auth --> ESO
+    KV --> ESO
+    DB --> ESO
+    ESO --> ES
 ```
 
 ### Cross-cluster auth
@@ -373,21 +367,33 @@ Enabled plugins: `rabbitmq_management`, `rabbitmq_peer_discovery_k8s`, `rabbitmq
 
 ### Exchange design
 
-```
-Topic exchange: events
-        │
-        ├── inventory.*   published by: product-catalog
-        │   └── inventory.updated   — stock level change
-        │   └── inventory.reserved  — stock reserved for order
-        │
-        ├── order.*       published by: order-service
-        │   └── order.created       — new order placed
-        │   └── order.confirmed     — payment confirmed
-        │   └── order.cancelled     — order cancelled
-        │
-        └── cart.*        published by: basket-service
-            └── cart.checkout       — cart submitted for ordering
-            └── cart.abandoned      — cart idle > threshold
+```mermaid
+graph TD
+    exchange["Topic exchange: events"]
+
+    inv["inventory.*\npublished by: product-catalog"]
+    inv1["inventory.updated\nstock level change"]
+    inv2["inventory.reserved\nstock reserved for order"]
+
+    ord["order.*\npublished by: order-service"]
+    ord1["order.created\nnew order placed"]
+    ord2["order.confirmed\npayment confirmed"]
+    ord3["order.cancelled\norder cancelled"]
+
+    cart["cart.*\npublished by: basket-service"]
+    cart1["cart.checkout\ncart submitted for ordering"]
+    cart2["cart.abandoned\ncart idle > threshold"]
+
+    exchange --> inv
+    inv --> inv1
+    inv --> inv2
+    exchange --> ord
+    ord --> ord1
+    ord --> ord2
+    ord --> ord3
+    exchange --> cart
+    cart --> cart1
+    cart --> cart2
 ```
 
 ### Publisher / consumer map
