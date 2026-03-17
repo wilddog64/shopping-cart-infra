@@ -74,6 +74,18 @@
 
 ## Pending
 
+### v0.9.5 — Service Mesh (next milestone after v0.9.4)
+
+- [ ] `istio/peer-authentication.yaml` — STRICT mTLS mesh-wide
+- [ ] `istio/authz-payment.yaml` — deny-all + allow order-service → payment (replaces NetworkPolicy at L7)
+- [ ] `istio/gateway.yaml` — Gateway + VirtualService for frontend ingress + API routing
+- [ ] `istio/destination-rules.yaml` — LEAST_CONN (order, payment), ROUND_ROBIN (basket, catalog, frontend)
+- [ ] `istio/service-entries.yaml` — Stripe + PayPal registered as MESH_EXTERNAL
+- [ ] `docs/service-mesh.md` — **operational doc** (what's deployed, how to verify mTLS, how to add a new service, troubleshooting)
+- Full spec: `k3d-manager/docs/plans/v0.9.5-service-mesh.md`
+
+### Other
+
 - [ ] Stage 4: Observability integration (being done in `observability-stack` repo)
 - [ ] Network policies for strict namespace isolation
 - [ ] Production promotion runbook
