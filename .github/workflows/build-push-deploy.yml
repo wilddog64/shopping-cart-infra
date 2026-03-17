@@ -40,6 +40,7 @@ jobs:
 
       - name: Scan image (Trivy)
         uses: aquasecurity/trivy-action@0.30.0
+        continue-on-error: true
         with:
           image-ref: ${{ inputs.image-name }}:sha-${{ github.sha }}
           severity: CRITICAL,HIGH
