@@ -335,7 +335,6 @@ post {
 
 - [GitHub Actions & Jenkins Webhook Setup](../docs/github-actions-webhook-setup.md)
 - [Container Image Workflow](../docs/container-image-workflow.md)
-- [Examples Directory](../examples/README.md)
 
 ## Support
 
