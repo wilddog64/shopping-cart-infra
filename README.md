@@ -407,7 +407,7 @@ make rabbitmq-ui  # RabbitMQ management
 
 ## License
 
-MIT
+Apache 2.0
 
 ## Related Repositories
 
