@@ -74,7 +74,7 @@
 
 ## Pending
 
-### v0.9.4 — Multi-arch CI fix (Codex ready)
+### Multi-arch CI fix (Codex ready)
 
 - [ ] Update `@8363caf` → `@999f8d7` in all 5 app repo CI workflows — spec: `docs/plans/codex-multiarch-workflow-pin.md`
 - [ ] PRs open on all 5 repos (`fix/multiarch-workflow-pin`) — CI green before merge
