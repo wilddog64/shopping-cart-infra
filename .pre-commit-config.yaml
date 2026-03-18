@@ -1,5 +1,0 @@
-repos:
-  - repo: https://github.com/wilddog64/lib-foundation
-    rev: v0.3.4
-    hooks:
-      - id: check-placeholder-urls
