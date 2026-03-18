@@ -57,3 +57,12 @@ npm run build  # fails with TS2769 in vite.config.ts ("test" property)
   expect a `getRefundsByPaymentId` helper that no longer exists. The production
   method requires `(paymentId, amount, reason, userId, correlationId)`, so the
   test suite must be updated before CI can pass.
+
+### 2026-03-14 — `shopping-cart-basket` golangci-lint rollout blocked
+
+- Branch `feature/p4-linter` (PR #1) adds golangci-lint per the P4 linter plan.
+  All GitHub Actions runs currently fail because golangci-lint reports existing
+  issues in `cmd/server/main.go` (`logger.Sync()` return value ignored) and
+  formatting drift in `cmd/server/main.go` plus `internal/model/cart.go`.
+- Per the plan, no Go source changes were made. Decide whether to fix the
+  reported issues or relax the lint configuration before merging the PR.
