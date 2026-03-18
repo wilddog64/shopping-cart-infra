@@ -76,11 +76,17 @@
 
 ### Multi-arch CI fix (Codex ready)
 
-- [ ] Update `@8363caf` → `@999f8d7` in all 5 app repo CI workflows — spec: `docs/plans/codex-multiarch-workflow-pin.md`
-- [ ] PRs open on all 5 repos (`fix/multiarch-workflow-pin`) — CI green before merge
+- [x] `shopping-cart-basket` — `@999f8d7` on main (Codex, 2026-03-18)
+- [ ] Update `@8363caf` → `@999f8d7` in remaining 4 app repo CI workflows — spec: `docs/plans/codex-multiarch-workflow-pin.md`
+- [ ] PRs open on all 4 remaining repos (`fix/multiarch-workflow-pin`) — CI green before merge
 - [ ] Claude merges PRs after CI green
 - [ ] CI re-runs on main — pushes `linux/amd64,linux/arm64` images to ghcr.io
 - [ ] Gemini re-verifies ArgoCD all 5 apps Synced + pods Running on k3s
+
+### shopping-cart-basket resilience (Codex ready)
+
+- [ ] Redis circuit breaker — `sony/gobreaker` wrapping all 4 repo ops; 503 on open state; `/health/live` reflects circuit state
+- Issue spec: `shopping-cart-basket/docs/issues/2026-03-18-redis-circuit-breaker.md`
 
 ### v0.9.5 — Service Mesh (next milestone after v0.9.4)
 
