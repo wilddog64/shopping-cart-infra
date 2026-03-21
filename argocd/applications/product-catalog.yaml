@@ -35,7 +35,7 @@ spec:
             kind: Deployment
 
   destination:
-    name: cluster-ubuntu-k3s
+    name: ubuntu-k3s
     namespace: shopping-cart-apps
 
   syncPolicy:
