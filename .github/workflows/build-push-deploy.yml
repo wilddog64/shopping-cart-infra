@@ -39,7 +39,7 @@ jobs:
             GH_TOKEN=${{ secrets.PACKAGES_TOKEN }}
 
       - name: Scan image (Trivy)
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@v0.35.0
         continue-on-error: true
         with:
           image-ref: ${{ inputs.image-name }}:sha-${{ github.sha }}
