@@ -36,7 +36,7 @@ spec:
             kind: Deployment
 
   destination:
-    server: https://host.k3d.internal:6443
+    name: cluster-ubuntu-k3s
     namespace: shopping-cart-payment
 
   syncPolicy:
