@@ -18,6 +18,16 @@ CLUSTER_NAME="ubuntu-k3s"
 # Use host.k3d.internal so ArgoCD pods inside k3d reach Ubuntu via the SSH tunnel on the host
 CLUSTER_SERVER="https://host.k3d.internal:6443"
 
+# Preflight: require python3 and PyYAML
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "ERROR: python3 is required but not found. Install python3 and retry." >&2
+  exit 1
+fi
+if ! python3 -c "import yaml" 2>/dev/null; then
+  echo "ERROR: PyYAML is required. Install with: pip3 install pyyaml" >&2
+  exit 1
+fi
+
 if [[ "${1:-}" == "--delete" ]]; then
   echo "Removing ArgoCD cluster secret for $CLUSTER_NAME..."
   kubectl delete secret "$CLUSTER_NAME" -n "$ARGOCD_NAMESPACE" --ignore-not-found
@@ -38,31 +48,30 @@ if ! curl -sk --max-time 3 https://localhost:6443/version >/dev/null 2>&1; then
 fi
 
 echo "Extracting credentials from $KUBECONFIG_UBUNTU..."
-CERT_DATA=$(python3 -c "
-import yaml
-with open('$KUBECONFIG_UBUNTU') as f:
-    kc = yaml.safe_load(f)
-print(kc['users'][0]['user']['client-certificate-data'])
-")
 
-KEY_DATA=$(python3 -c "
-import yaml
-with open('$KUBECONFIG_UBUNTU') as f:
-    kc = yaml.safe_load(f)
-print(kc['users'][0]['user']['client-key-data'])
-")
+# Extract cert and key data via file read (not command-line interpolation) to avoid
+# exposing secrets in process listings (ps/top).
+_tmpfile=$(mktemp)
+trap 'rm -f "$_tmpfile"' EXIT
 
-CONFIG_JSON=$(python3 -c "
-import json, base64
+python3 - "$KUBECONFIG_UBUNTU" > "$_tmpfile" <<'EOF'
+import sys, json, yaml
+with open(sys.argv[1]) as f:
+    kc = yaml.safe_load(f)
+user = kc['users'][0]['user']
 config = {
     'tlsClientConfig': {
+        # insecure: true is intentional for this dev/lab environment (self-signed k3s cert).
+        # Do NOT use in production — populate caData instead.
         'insecure': True,
-        'certData': '$CERT_DATA',
-        'keyData': '$KEY_DATA'
+        'certData': user['client-certificate-data'],
+        'keyData': user['client-key-data'],
     }
 }
 print(json.dumps(config))
-")
+EOF
+
+CONFIG_JSON=$(cat "$_tmpfile")
 
 echo "Applying ArgoCD cluster secret (server: $CLUSTER_SERVER)..."
 kubectl create secret generic "$CLUSTER_NAME" \
