@@ -8,7 +8,7 @@ metadata:
     component: message-queue
 spec:
   serviceName: rabbitmq-headless
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: rabbitmq
