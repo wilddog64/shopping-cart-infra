@@ -2,14 +2,16 @@
 
 ## Overview
 
-This directory contains the Kubernetes manifests for deploying a 3-node RabbitMQ cluster to the `shopping-cart-data` namespace.
+This directory contains the Kubernetes manifests for deploying RabbitMQ to the `shopping-cart-data` namespace.
+
+**Current configuration**: 1 replica (reduced from 3 for resource-constrained single-node clusters such as `t3.medium`). Scale to 3 for HA in multi-node environments.
 
 **Status**: Stage 1 Complete - Basic Infrastructure
 **Next**: Stage 2 - Vault Integration for Dynamic Credentials
 
 ## Architecture
 
-- **Replicas**: 3-node cluster for high availability
+- **Replicas**: 1 (dev/single-node); scale to 3 for HA in multi-node environments
 - **Image**: `rabbitmq:3.12-management-alpine`
 - **Clustering**: Automatic via Kubernetes peer discovery plugin
 - **Storage**: 10Gi per node (PersistentVolumeClaim)
@@ -32,7 +34,7 @@ Three services:
 
 ### 3. statefulset.yaml
 StatefulSet with:
-- 3 replicas for HA
+- 1 replica (dev/single-node); set to 3 for HA
 - Init container for permission setup
 - Liveness and readiness probes
 - Volume claim templates for persistent storage
@@ -54,16 +56,9 @@ RBAC resources for Kubernetes peer discovery:
 
 2. **k3d cluster with local-path StorageClass** (default in k3d)
 
-3. **Cluster Resources** (for 3-node HA cluster):
-   - **Minimum CPU**: 1.5 cores (3 replicas × 500m requests)
-   - **Recommended CPU**: 3+ cores for production workloads
-   - **Memory**: 3Gi (3 replicas × 1Gi requests)
-   - **Storage**: 30Gi total (3 replicas × 10Gi PVCs)
-
-**Note for single-node k3d clusters**: If your cluster has limited resources, scale down to 1 replica after deployment:
-```bash
-kubectl scale statefulset rabbitmq -n shopping-cart-data --replicas=1
-```
+3. **Cluster Resources**:
+   - **Single-node (default)**: 500m CPU / 1Gi RAM / 10Gi storage
+   - **3-node HA**: 1.5 cores CPU / 3Gi RAM / 30Gi storage (set `replicas: 3` in statefulset.yaml)
 
 ### Deploy RabbitMQ
 
@@ -83,11 +78,9 @@ kubectl apply -f data-layer/rabbitmq/statefulset.yaml
 # Check pods
 kubectl get pods -n shopping-cart-data -l app=rabbitmq
 
-# Expected output:
+# Expected output (single-replica):
 # NAME         READY   STATUS    RESTARTS   AGE
 # rabbitmq-0   1/1     Running   0          2m
-# rabbitmq-1   1/1     Running   0          1m
-# rabbitmq-2   1/1     Running   0          30s
 
 # Check services
 kubectl get svc -n shopping-cart-data
@@ -144,7 +137,7 @@ env:
 # From any RabbitMQ pod
 kubectl exec -n shopping-cart-data rabbitmq-0 -- rabbitmqctl cluster_status
 
-# Expected output should show all 3 nodes
+# Expected output shows 1 node (rabbitmq@rabbitmq-0) in single-replica config
 ```
 
 ### Test Publishing
