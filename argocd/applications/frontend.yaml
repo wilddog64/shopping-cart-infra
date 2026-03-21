@@ -1,0 +1,69 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: frontend
+  namespace: cicd
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: shopping-cart
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: shopping-cart
+
+  source:
+    repoURL: https://github.com/wilddog64/shopping-cart-frontend.git
+    targetRevision: HEAD
+    path: k8s/base
+
+    kustomize:
+      patches:
+        - patch: |-
+            - op: replace
+              path: /spec/replicas
+              value: 1
+          target:
+            kind: Deployment
+        - patch: |-
+            - op: add
+              path: /spec/template/spec/imagePullSecrets
+              value:
+                - name: ghcr-pull-secret
+          target:
+            kind: Deployment
+
+  destination:
+    server: https://host.k3d.internal:6443
+    namespace: shopping-cart-apps
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Health checks
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+
+  info:
+    - name: Description
+      value: Frontend - React application for shopping cart
+    - name: Team
+      value: shopping-cart-team
+    - name: Tier
+      value: frontend
