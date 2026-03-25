@@ -1,6 +1,6 @@
 # CI/CD Architecture - GitHub + Jenkins + Argo CD
 
-**Last Updated:** 2025-12-10
+**Last Updated:** 2026-03-25
 **Version:** 1.0
 **Architecture:** GitOps with Multi-Repository Strategy
 
@@ -37,104 +37,44 @@ This architecture implements a complete GitOps CI/CD pipeline using:
 
 ## Architecture Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              DEVELOPER WORKFLOW                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Dev[Developer] -->|git push| GH[(GitHub Repository)]
 
-Developer → Git Push → GitHub Repository
-                          │
-                          ├─→ GitHub Actions (PR Checks)
-                          │    ├─ Lint code
-                          │    ├─ Run unit tests
-                          │    ├─ Security scan
-                          │    └─ Build validation
-                          │
-                          └─→ GitHub Webhook → Jenkins
-                                                 │
-┌────────────────────────────────────────────────┼─────────────────────────────┐
-│                         JENKINS CI PIPELINE    │                             │
-│                                                ▼                             │
-│   ┌──────────────────────────────────────────────────────────────────┐      │
-│   │ 1. Checkout Code (Application Repo)                              │      │
-│   └────────────────────────────┬─────────────────────────────────────┘      │
-│                                 │                                            │
-│   ┌─────────────────────────────▼────────────────────────────────────┐      │
-│   │ 2. Run Tests (Unit, Integration)                                 │      │
-│   └────────────────────────────┬─────────────────────────────────────┘      │
-│                                 │                                            │
-│   ┌─────────────────────────────▼────────────────────────────────────┐      │
-│   │ 3. Build Docker Image                                            │      │
-│   │    docker build -t ghcr.io/user/product-catalog:abc123          │      │
-│   └────────────────────────────┬─────────────────────────────────────┘      │
-│                                 │                                            │
-│   ┌─────────────────────────────▼────────────────────────────────────┐      │
-│   │ 4. Push Image to Registry                                        │      │
-│   │    docker push ghcr.io/user/product-catalog:abc123              │      │
-│   └────────────────────────────┬─────────────────────────────────────┘      │
-│                                 │                                            │
-│   ┌─────────────────────────────▼────────────────────────────────────┐      │
-│   │ 5. Clone Infrastructure Repo                                     │      │
-│   │    git clone shopping-cart-infrastructure                        │      │
-│   └────────────────────────────┬─────────────────────────────────────┘      │
-│                                 │                                            │
-│   ┌─────────────────────────────▼────────────────────────────────────┐      │
-│   │ 6. Update Image Tag in Helm Values                              │      │
-│   │    yq eval '.productCatalog.image.tag = "abc123"'               │      │
-│   │         -i chart/values-dev.yaml                                 │      │
-│   └────────────────────────────┬─────────────────────────────────────┘      │
-│                                 │                                            │
-│   ┌─────────────────────────────▼────────────────────────────────────┐      │
-│   │ 7. Commit and Push to Infrastructure Repo                        │      │
-│   │    git commit -m "Update product-catalog to abc123"             │      │
-│   │    git push origin main                                          │      │
-│   └────────────────────────────┬─────────────────────────────────────┘      │
-│                                 │                                            │
-└─────────────────────────────────┼────────────────────────────────────────────┘
-                                  │
-                                  │ (Git push triggers Argo CD)
-                                  │
-┌─────────────────────────────────▼────────────────────────────────────────────┐
-│                         ARGO CD GITOPS SYNC                                  │
-│                                                                              │
-│   ┌──────────────────────────────────────────────────────────────────┐      │
-│   │ 1. Detect Change in Infrastructure Repo                          │      │
-│   │    - Poll every 3 minutes (default)                              │      │
-│   │    - Or webhook notification                                     │      │
-│   └────────────────────────────┬─────────────────────────────────────┘      │
-│                                 │                                            │
-│   ┌─────────────────────────────▼────────────────────────────────────┐      │
-│   │ 2. Compare Desired State (Git) vs Actual State (Cluster)        │      │
-│   └────────────────────────────┬─────────────────────────────────────┘      │
-│                                 │                                            │
-│   ┌─────────────────────────────▼────────────────────────────────────┐      │
-│   │ 3. Apply Changes to Kubernetes                                   │      │
-│   │    - Pull new image: ghcr.io/user/product-catalog:abc123       │      │
-│   │    - Update deployment                                           │      │
-│   │    - Rolling update pods                                         │      │
-│   └────────────────────────────┬─────────────────────────────────────┘      │
-│                                 │                                            │
-│   ┌─────────────────────────────▼────────────────────────────────────┐      │
-│   │ 4. Verify Sync Status                                            │      │
-│   │    ✓ Application: Synced                                         │      │
-│   │    ✓ Health: Healthy                                             │      │
-│   └──────────────────────────────────────────────────────────────────┘      │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
+    subgraph GHA["GitHub Actions — PR Checks"]
+        GH -->|pull request| GHA1[Lint Code]
+        GH --> GHA2[Unit Tests]
+        GH --> GHA3[Security Scan]
+        GH --> GHA4[Build Validation]
+    end
 
-                                  │
-                                  ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                         KUBERNETES CLUSTER                                   │
-│                                                                              │
-│   Namespace: shopping-cart-apps                                             │
-│   ┌────────────────────────────────────────────────────────────┐            │
-│   │  Deployment: product-catalog                               │            │
-│   │  Image: ghcr.io/user/product-catalog:abc123 ✓ NEW         │            │
-│   │  Replicas: 2/2 Running                                     │            │
-│   └────────────────────────────────────────────────────────────┘            │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
+    GH -->|webhook| Jenkins
+
+    subgraph Jenkins["Jenkins CI Pipeline"]
+        J1[1. Checkout Application Code] -->
+        J2[2. Run Unit & Integration Tests] -->
+        J3[3. Build Docker Image\nghcr.io/user/product-catalog:sha] -->
+        J4[4. Push Image to Registry] -->
+        J5[5. Clone Infrastructure Repo] -->
+        J6[6. Update Image Tag in Helm Values\nyq eval '.image.tag = sha' -i values-dev.yaml] -->
+        J7[7. Commit & Push to Infrastructure Repo]
+    end
+
+    J4 -->|docker push| Registry[(Docker Registry\nGHCR / DockerHub)]
+
+    J7 -->|git push triggers| ArgoCD
+
+    subgraph ArgoCD["Argo CD — GitOps Sync"]
+        A1[1. Detect Change in Infrastructure Repo\npoll every 3 min or webhook] -->
+        A2[2. Compare Desired State vs Actual State] -->
+        A3[3. Apply Changes to Kubernetes\nrolling update pods] -->
+        A4[✓ Synced  ✓ Healthy]
+    end
+
+    subgraph K8s["Kubernetes Cluster — shopping-cart-apps"]
+        A4 --> Pod[Deployment: product-catalog\nImage: ghcr.io/user/product-catalog:sha\nReplicas: 2/2 Running]
+        Registry -->|pull new image| Pod
+    end
 ```
 
 ---
