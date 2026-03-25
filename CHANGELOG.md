@@ -2,7 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- `argocd/applications/data-layer.yaml` — ArgoCD Application for data-layer (PostgreSQL, RabbitMQ, Redis); previously required manual `kubectl apply`
+
 ### Fixed
+- RabbitMQ `configmap.yaml`: add `loopback_users.guest = none` — guest user was restricted to localhost by default, causing "Connection refused" from cross-namespace pods
+- RabbitMQ `statefulset.yaml`: reduce resource requests 500m/1Gi → 200m/512Mi to fit t3.medium with co-located services; keep limits at 1000m/1Gi
 - Scale RabbitMQ from 3 replicas to 1 to reduce memory pressure on t3.medium (3×1Gi requests exhausted available RAM)
 
 ## [0.1.0] - 2026-03-14

@@ -37,6 +37,9 @@ data:
     default_pass = guest
     default_user_tags.administrator = true
 
+    # Allow guest user from remote hosts (dev only — locked down in Stage 2 with Vault)
+    loopback_users.guest = none
+
     # Virtual hosts
     default_vhost = /
 

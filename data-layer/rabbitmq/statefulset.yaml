@@ -99,11 +99,11 @@ spec:
 
           resources:
             requests:
-              cpu: 500m
-              memory: 1Gi
+              cpu: 200m
+              memory: 512Mi
             limits:
               cpu: 1000m
-              memory: 2Gi
+              memory: 1Gi
 
       volumes:
         - name: config
