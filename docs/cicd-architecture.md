@@ -48,23 +48,23 @@ flowchart TD
         GH --> GHA4[Build Validation]
     end
 
-    GH -->|webhook| Jenkins
+    GH -->|webhook| J1
 
-    subgraph Jenkins["Jenkins CI Pipeline"]
+    subgraph JenkinsPipeline["Jenkins CI Pipeline"]
         J1[1. Checkout Application Code] -->
         J2[2. Run Unit & Integration Tests] -->
-        J3[3. Build Docker Image\nghcr.io/user/product-catalog:sha] -->
+        J3[3. Build Docker Image\nghcr.io/user/product-catalog:abc123] -->
         J4[4. Push Image to Registry] -->
         J5[5. Clone Infrastructure Repo] -->
-        J6[6. Update Image Tag in Helm Values\nyq eval '.image.tag = sha' -i values-dev.yaml] -->
+        J6[6. Update Image Tag in Helm Values\nyq eval '.productCatalog.image.tag = abc123' -i chart/values-dev.yaml] -->
         J7[7. Commit & Push to Infrastructure Repo]
     end
 
     J4 -->|docker push| Registry[(Docker Registry\nGHCR / DockerHub)]
 
-    J7 -->|git push triggers| ArgoCD
+    J7 -->|git push triggers| A1
 
-    subgraph ArgoCD["Argo CD — GitOps Sync"]
+    subgraph ArgoCDSync["Argo CD — GitOps Sync"]
         A1[1. Detect Change in Infrastructure Repo\npoll every 3 min or webhook] -->
         A2[2. Compare Desired State vs Actual State] -->
         A3[3. Apply Changes to Kubernetes\nrolling update pods] -->
@@ -72,7 +72,7 @@ flowchart TD
     end
 
     subgraph K8s["Kubernetes Cluster — shopping-cart-apps"]
-        A4 --> Pod[Deployment: product-catalog\nImage: ghcr.io/user/product-catalog:sha\nReplicas: 2/2 Running]
+        A4 --> Pod[Deployment: product-catalog\nImage: ghcr.io/user/product-catalog:abc123\nReplicas: 2/2 Running]
         Registry -->|pull new image| Pod
     end
 ```
