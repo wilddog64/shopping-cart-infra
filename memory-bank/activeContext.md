@@ -1,5 +1,11 @@
 # Active Context: shopping-cart-infra
 
+## Current Status (2026-03-25)
+
+**PR #22 MERGED** — `7904c8a` 2026-03-25 — RabbitMQ connection fix: `loopback_users.guest = false`, data-layer ArgoCD app with `directory.recurse: true`, resource requests reduced. Copilot 3 findings fixed. `enforce_admins` restored.
+**Active branch:** `docs/next-improvements`
+**Issue shopping-cart-order#16:** CLOSED — fixed in this PR.
+
 ## Current Status (2026-03-14)
 
 Infrastructure stages 1–3 complete. CI stabilization complete across all 5 app repos. P4 linters merged to main on all 4 linted repos.
