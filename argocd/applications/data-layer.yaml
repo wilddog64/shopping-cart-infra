@@ -16,6 +16,8 @@ spec:
     repoURL: https://github.com/wilddog64/shopping-cart-infra.git
     targetRevision: HEAD
     path: data-layer
+    directory:
+      recurse: true
 
   destination:
     name: ubuntu-k3s
