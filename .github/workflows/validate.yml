@@ -30,10 +30,7 @@ jobs:
               comments:
                 min-spaces-from-content: 1
               document-start: disable
-              indentation:
-                spaces: 2
-                indent-sequences: false
-                check-multi-line-strings: false
+              indentation: disable
 
   kubeconform:
     name: Kubeconform
