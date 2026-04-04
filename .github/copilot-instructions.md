@@ -4,7 +4,11 @@
 
 Shared infrastructure for the Shopping Cart platform:
 - **`/.github/workflows/build-push-deploy.yml`** — reusable CI workflow called by all 5 app repos
-- **`/k8s/`** — Kubernetes manifests (Kustomize) for all 5 apps, managed by ArgoCD
+- **`/.github/workflows/validate.yml`** — CI: yamllint + kubeconform + kustomize build on every PR
+- **`/argocd/`** — ArgoCD Applications, AppProject, config
+- **`/data-layer/`** — PostgreSQL, Redis, RabbitMQ StatefulSets + ESO ExternalSecrets
+- **`/identity/`** — Keycloak + OpenLDAP (Kustomize overlays)
+- **`/namespaces/`** — Namespace definitions
 - **`/docs/`** — architecture, CI/CD, RabbitMQ, Vault, and issue documentation
 
 ---
