@@ -1,9 +1,10 @@
 # Active Context: shopping-cart-infra
 
-## Current Status (2026-04-03)
+## Current Status (2026-04-04)
 
-**BLOCKED — do not investigate until k3d-manager cold-run gate passes.** Gate: `make down` → `make up` from zero completes with ClusterSecretStore Ready + 3 nodes Ready on a fresh sandbox.
-**App pods Degraded/OutOfSync after k3d-manager v1.0.2 `make up`** — 3-node k3s cluster is up, ClusterSecretStore Ready, ESO running. ArgoCD sync shows: basket-service Degraded, frontend Degraded, order-service Degraded, payment-service Degraded, product-catalog OutOfSync/Degraded, data-layer OutOfSync/Missing. Root cause not yet diagnosed — needs investigation when next sandbox is live. Known prior issues: RabbitMQ (order-service), memory limits (payment-service), resource exhaustion (frontend).
+**PR #23 MERGED** — `0a38037` 2026-04-04 — ESO apiVersion v1beta1 → v1 (8 manifests), vault-bridge Service + ClusterSecretStore, validate CI workflow (yamllint + kubeconform + kustomize-build). Copilot 6 findings fixed. `enforce_admins` restored. Retro: `docs/retro/2026-04-04-pr23-eso-apiversion-fix-retrospective.md`.
+**Active branch:** `docs/next-improvements`
+**Next:** Gemini to sync ArgoCD data-layer app and verify app pods transition out of CrashLoopBackOff on ubuntu-k3s.
 
 ## Current Status (2026-03-25)
 

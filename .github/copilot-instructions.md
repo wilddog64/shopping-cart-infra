@@ -23,14 +23,18 @@ Shared infrastructure for the Shopping Cart platform:
 - `GH_TOKEN=${{ secrets.PACKAGES_TOKEN }}` forwarded as Docker build secret — required for GitHub Packages auth
 
 ### Kustomization Updates
-- `k8s/<app>/base/kustomization.yaml` `newTag` is updated by CI — the update step uses `git pull --rebase` before push
-- If the update step fails (branch protection), it is non-blocking (`continue-on-error: true`) — the image is still pushed to ghcr.io
-- Manual update may be needed when the CI step is blocked by branch protection
+- App image tags are in each app repo's `k8s/<app>/base/kustomization.yaml` — updated by CI in the app repo, not here
+- `identity/ldap/` and `identity/keycloak/` use Kustomize overlays managed in this repo
 
 ### GitOps Principle
-- ArgoCD watches this repo for changes to `k8s/` manifests
+- ArgoCD watches this repo for changes to `argocd/`, `data-layer/`, `identity/`, and `namespaces/` manifests
 - Never apply manifests directly to the cluster — always go through ArgoCD
-- Never change image tags in `kustomization.yaml` to a floating tag (e.g., `latest`) in production paths
+- Exception: `data-layer/secrets/` (vault-bridge, ClusterSecretStore) are applied by k3d-manager `bin/acg-up`, not ArgoCD
+
+### Manifest CI (validate.yml)
+- Every PR runs yamllint + kubeconform + kustomize-build
+- kubeconform uses `--ignore-missing-schemas` for CRDs (ESO, ArgoCD Application)
+- yamllint has `indentation: disable` — pre-existing debt; kubeconform handles structural correctness
 
 ---
 
