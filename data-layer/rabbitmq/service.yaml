@@ -54,7 +54,7 @@ spec:
   selector:
     app: rabbitmq
 ---
-# LoadBalancer service for Management UI
+# NodePort service for Management UI (k3s has no cloud LB)
 apiVersion: v1
 kind: Service
 metadata:
@@ -64,11 +64,12 @@ metadata:
     app: rabbitmq
     component: message-queue
 spec:
-  type: LoadBalancer
+  type: NodePort
   ports:
     - name: management
       port: 15672
       targetPort: 15672
       protocol: TCP
+      nodePort: 31672
   selector:
     app: rabbitmq
