@@ -29,7 +29,7 @@ Shared infrastructure for the Shopping Cart platform:
 ### GitOps Principle
 - ArgoCD watches this repo for changes to `argocd/`, `data-layer/`, `identity/`, and `namespaces/` manifests
 - Never apply manifests directly to the cluster — always go through ArgoCD
-- Exception: `data-layer/secrets/` (vault-bridge, ClusterSecretStore) are applied by k3d-manager `bin/acg-up`, not ArgoCD
+- Exception: the initial `secrets` namespace bootstrap resources (`vault-bridge`, `ClusterSecretStore`) may be applied by k3d-manager `bin/acg-up` before ArgoCD reconciliation; do not treat the entire `data-layer/secrets/` tree as excluded from ArgoCD
 
 ### Manifest CI (validate.yml)
 - Every PR runs yamllint + kubeconform + kustomize-build
