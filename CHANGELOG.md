@@ -4,6 +4,10 @@
 
 ### Added
 - `argocd/applications/data-layer.yaml` — ArgoCD Application for data-layer (PostgreSQL, RabbitMQ, Redis); previously required manual `kubectl apply`
+- `data-layer/secrets/redis-cart-apps-externalsecret.yaml` — sync redis-cart password into `shopping-cart-apps/redis-cart-secret` for basket-service
+- `data-layer/secrets/redis-orders-cache-apps-externalsecret.yaml` — sync redis-orders-cache password into `shopping-cart-apps/redis-orders-cache-secret`
+- `data-layer/secrets/postgres-orders-apps-externalsecret.yaml` — sync postgres/orders creds into `shopping-cart-apps/order-service-secrets` (all env keys)
+- `data-layer/secrets/postgres-products-apps-externalsecret.yaml` — sync postgres/products creds into `shopping-cart-apps/product-catalog-secrets` (all env keys)
 
 ### Fixed
 - `data-layer/secrets/*.yaml`: update `apiVersion` from `external-secrets.io/v1beta1` to `external-secrets.io/v1` — ESO 0.9.20 on k3s serves `v1`; `v1beta1` was not available, causing ArgoCD sync failures for `data-layer` and `product-catalog`
