@@ -38,6 +38,26 @@ data:
   application.instanceLabelKey: argocd.argoproj.io/instance
 
   # Resource tracking
+  resource.customizations.health.external-secrets.io_ExternalSecret: |
+    hs = {}
+    if obj.status ~= nil then
+      for _, condition in ipairs(obj.status.conditions or {}) do
+        if condition.type == "Ready" then
+          if condition.status == "True" then
+            hs.status = "Healthy"
+            hs.message = condition.message or ""
+          else
+            hs.status = "Degraded"
+            hs.message = condition.message or ""
+          end
+          return hs
+        end
+      end
+    end
+    hs.status = "Progressing"
+    hs.message = "Waiting for ExternalSecret to sync"
+    return hs
+
   resource.customizations.health.argoproj.io_Application: |
     hs = {}
     hs.status = "Healthy"

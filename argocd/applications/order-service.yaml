@@ -33,6 +33,13 @@ spec:
                 - name: ghcr-pull-secret
           target:
             kind: Deployment
+        - patch: |-
+            - op: add
+              path: /data/SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: create
+          target:
+            kind: ConfigMap
+            name: order-service-config
 
   destination:
     name: ubuntu-k3s
