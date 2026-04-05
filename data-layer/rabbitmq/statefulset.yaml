@@ -1,8 +1,11 @@
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: rabbitmq
   namespace: shopping-cart-data
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
   labels:
     app: rabbitmq
     component: message-queue
@@ -72,6 +75,16 @@ spec:
               value: ".rabbitmq-headless.$(MY_POD_NAMESPACE).svc.cluster.local"
             - name: RABBITMQ_ERLANG_COOKIE
               value: "secretcookie"  # TODO: Replace with Secret in Stage 2
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-credentials
+                  key: username
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-credentials
+                  key: password
 
           volumeMounts:
             - name: config

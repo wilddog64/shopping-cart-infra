@@ -54,7 +54,7 @@ spec:
   selector:
     app: rabbitmq
 ---
-# LoadBalancer service for Management UI
+# ClusterIP service for Management UI — use kubectl port-forward for external access
 apiVersion: v1
 kind: Service
 metadata:
@@ -64,7 +64,7 @@ metadata:
     app: rabbitmq
     component: message-queue
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
     - name: management
       port: 15672

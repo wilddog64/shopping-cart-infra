@@ -36,6 +36,19 @@ Shared infrastructure for the Shopping Cart platform:
 - kubeconform uses `--ignore-missing-schemas` for CRDs (ESO, ArgoCD Application)
 - yamllint has `indentation: disable` — pre-existing debt; kubeconform handles structural correctness
 
+### ESO ExternalSecret Rules
+- `storeRef.kind` must be `ClusterSecretStore` — no namespace-scoped SecretStore is deployed on the remote k3s cluster; using `kind: SecretStore` will cause `SecretSyncedError` on every ExternalSecret
+- `remoteRef.key` paths must match what `bin/acg-up` seeds in Vault KV: `secret/data/redis/cart`, `secret/data/redis/orders-cache`, `secret/data/postgres/orders`, `secret/data/postgres/products`, `secret/data/postgres/payment`, `secret/data/rabbitmq/default`, `secret/data/payment/encryption`, `secret/data/payment/stripe`, `secret/data/payment/paypal`
+- `refreshInterval` must be `24h` for static KV credentials — `1h` is for rotating dynamic creds only; the ACG sandbox does not run the Vault DB engine
+- Do not use `database/creds/<role>` paths in `remoteRef.key` — the Vault DB engine is not configured on ACG sandbox; those paths do not exist
+- Do not hardcode credentials in `spec.target.template.data` — all credential values (including RabbitMQ) must come from Vault KV via `data[].remoteRef`; hardcoded values bypass ESO/Vault and cannot be rotated
+- Every ExternalSecret must set `spec.target.template.metadata.labels` on the generated Secret — use the same `app.kubernetes.io/*` label set as the ExternalSecret resource itself
+
+### RabbitMQ Credentials
+- RabbitMQ StatefulSet must set `RABBITMQ_DEFAULT_USER` and `RABBITMQ_DEFAULT_PASS` from `rabbitmq-credentials` secret (managed by `rabbitmq-externalsecret.yaml` in `shopping-cart-data`)
+- App-namespace ExternalSecrets that include RabbitMQ env keys (`RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_USER`) must source them from `secret/data/rabbitmq/default` via `remoteRef` — never hardcode `guest` or any other value in the template
+- The Vault KV path `secret/data/rabbitmq/default` is seeded by `bin/acg-up` in k3d-manager; if it is missing, the ExternalSecret will fail to sync
+
 ---
 
 ## Security Rules (treat violations as bugs)

@@ -21,6 +21,8 @@
 - [x] Redis StatefulSet: orders-cache
 - [x] RabbitMQ StatefulSet with management UI + Prometheus plugin
 - [x] ExternalSecrets for all components (Vault → K8s Secrets)
+- [x] RabbitMQ default credentials sourced from Vault (`d356490` — branch `fix/app-namespace-secrets`, spec `docs/plans/v0.2.1-bugfix-rabbitmq-vault-creds.md`)
+- [x] ArgoCD sync waves + ESO health check + ddl-auto=create (`3b8b13b` — branch `fix/argocd-sync-waves-ddl-auto`, spec `docs/plans/v0.2.2-fix-argocd-sync-waves-ddl-auto.md`) — PR merged `e95b31a` 2026-04-05
 - [x] Vault database secrets engine configuration script
 
 ### Application Services (Helm Chart)
