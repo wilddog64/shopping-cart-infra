@@ -54,7 +54,7 @@ spec:
   selector:
     app: rabbitmq
 ---
-# NodePort service for Management UI (k3s has no cloud LB)
+# ClusterIP service for Management UI — use kubectl port-forward for external access
 apiVersion: v1
 kind: Service
 metadata:
@@ -64,12 +64,11 @@ metadata:
     app: rabbitmq
     component: message-queue
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - name: management
       port: 15672
       targetPort: 15672
       protocol: TCP
-      nodePort: 31672
   selector:
     app: rabbitmq
