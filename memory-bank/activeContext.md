@@ -4,6 +4,7 @@
 
 **BLOCKED — do not investigate until k3d-manager cold-run gate passes.** Gate: `make down` → `make up` from zero completes with ClusterSecretStore Ready + 3 nodes Ready on a fresh sandbox.
 **App pods Degraded/OutOfSync after k3d-manager v1.0.2 `make up`** — 3-node k3s cluster is up, ClusterSecretStore Ready, ESO running. ArgoCD sync shows: basket-service Degraded, frontend Degraded, order-service Degraded, payment-service Degraded, product-catalog OutOfSync/Degraded, data-layer OutOfSync/Missing. Root cause not yet diagnosed — needs investigation when next sandbox is live. Known prior issues: RabbitMQ (order-service), memory limits (payment-service), resource exhaustion (frontend).
+**RabbitMQ Vault credentials fix** — COMPLETE (`d356490`). Branch `fix/app-namespace-secrets` adds `rabbitmq-externalsecret`, wires RabbitMQ StatefulSet to that secret, and updates app-namespace ExternalSecrets to pull RabbitMQ creds from Vault so pods no longer hardcode guest/guest. Spec: `docs/plans/v0.2.1-bugfix-rabbitmq-vault-creds.md`.
 
 ## Current Status (2026-03-25)
 
