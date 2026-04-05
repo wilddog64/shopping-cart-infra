@@ -1,5 +1,16 @@
 # Active Context: shopping-cart-infra
 
+## Current Status (2026-04-05)
+
+**CrashLoopBackOff diagnosis complete — PRs open for all 3 root causes:**
+- wilddog64/shopping-cart-infra#28 (`fix/app-credentials`) — ExternalSecret key mismatch: product-catalog reads `DB_USERNAME`/`DB_PASSWORD` (pydantic alias), not `DATABASE_USER`/`DATABASE_PASSWORD`; payment-service missing `RABBITMQ_USERNAME`/`RABBITMQ_PASSWORD`
+- wilddog64/shopping-cart-payment#17 (`fix/network-policy-labels`) — pod template missing `app.kubernetes.io/version: 1.0.0` label causes `default-deny-all` NetworkPolicy to block DNS → `UnknownHostException`; also adds RabbitMQ env vars
+- wilddog64/shopping-cart-frontend#13 (`fix/frontend-manifest-port-probe`) — nginx EACCES on `/var/cache/nginx/client_temp`; fixed by adding `nginx-cache` emptyDir volume
+
+**Password rotation issue filed:** wilddog64/shopping-cart-infra#29 — hardcoded sandbox passwords in `acg-up` to be replaced with `openssl rand` generated values. Spec: `k3d-manager/docs/plans/v1.0.4-bugfix-acg-up-random-passwords.md`.
+
+**admin override enabled** on shopping-cart-infra for PR #27 merge (RabbitMQ ClusterIP fix). Re-enable after merge: `gh api repos/wilddog64/shopping-cart-infra/branches/main/protection/enforce_admins -X POST -f enabled=true`
+
 ## Current Status (2026-04-03)
 
 **BLOCKED — do not investigate until k3d-manager cold-run gate passes.** Gate: `make down` → `make up` from zero completes with ClusterSecretStore Ready + 3 nodes Ready on a fresh sandbox.

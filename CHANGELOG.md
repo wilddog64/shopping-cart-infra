@@ -18,6 +18,8 @@
 - RabbitMQ `configmap.yaml`: add `loopback_users.guest = false` — guest user was restricted to localhost by default, causing "Connection refused" from cross-namespace pods
 - RabbitMQ `statefulset.yaml`: reduce resource requests 500m/1Gi → 200m/512Mi to fit t3.medium with co-located services; keep limits at 1000m/1Gi
 - Scale RabbitMQ from 3 replicas to 1 to reduce memory pressure on t3.medium (3×1Gi requests exhausted available RAM)
+- `data-layer/rabbitmq/service.yaml`: change `rabbitmq-management` from `LoadBalancer` to `ClusterIP` — LoadBalancer stays `Progressing` on k3s (no cloud LB), blocking ArgoCD wave 1 (StatefulSets) from deploying; ClusterIP resolves immediately as Healthy (`dfc949d` — PR #27)
+- `data-layer/secrets/*.yaml`: use single-line connection strings — remove backslash-newline continuations in double-quoted YAML scalars to avoid whitespace/backslash ambiguity across tooling (`ad0817d` — PR #26)
 
 ## [0.1.0] - 2026-03-14
 
