@@ -107,6 +107,14 @@
 - [ ] PostgreSQL HA (read replicas)
 - [ ] Backup/restore procedures for PostgreSQL and Redis
 
+## Releases
+
+| Version | Date | PR | SHA | Description |
+|---------|------|----|-----|-------------|
+| v0.2.0 | 2026-04-05 | #24 | 079a97c5 | ESO ClusterSecretStore fix + static Vault KV paths + ArgoCD data-layer app |
+| v0.1.1 | — | — | — | prior |
+| v0.1.0 | 2026-03-14 | — | — | Initial data layer + Vault + identity + ArgoCD + CI |
+
 ## Known Issues
 
 | ID | Description | Status |

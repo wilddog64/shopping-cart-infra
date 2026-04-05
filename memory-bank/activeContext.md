@@ -1,5 +1,12 @@
 # Active Context: shopping-cart-infra
 
+## Current Status (2026-04-05)
+
+**v0.2.0 SHIPPED** — PR #24 merged `079a97c5`. ExternalSecret storeRef and Vault KV path fixes are now on main. ArgoCD will pick up on next sync.
+**Active branch:** `docs/v0.2.0-post-merge`
+**enforce_admins:** restored on main ✅
+**Next:** merge k3d-manager PR #60 (v1.0.3) to complete the full ESO + ArgoCD fix chain.
+
 ## Current Status (2026-04-03)
 
 **BLOCKED — do not investigate until k3d-manager cold-run gate passes.** Gate: `make down` → `make up` from zero completes with ClusterSecretStore Ready + 3 nodes Ready on a fresh sandbox.
