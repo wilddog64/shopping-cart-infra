@@ -68,13 +68,11 @@ spec:
             - name: RABBITMQ_USE_LONGNAME
               value: "true"
             - name: RABBITMQ_NODENAME
-              value: "rabbit@$(MY_POD_NAME).rabbitmq-headless.\
-                $(MY_POD_NAMESPACE).svc.cluster.local"
+              value: "rabbit@$(MY_POD_NAME).rabbitmq-headless.$(MY_POD_NAMESPACE).svc.cluster.local"
             - name: K8S_SERVICE_NAME
               value: "rabbitmq-headless"
             - name: K8S_HOSTNAME_SUFFIX
-              value: ".rabbitmq-headless.$(MY_POD_NAMESPACE).\
-                svc.cluster.local"
+              value: ".rabbitmq-headless.$(MY_POD_NAMESPACE).svc.cluster.local"
             - name: RABBITMQ_ERLANG_COOKIE
               value: "secretcookie"  # TODO: Replace with Secret in Stage 2
             - name: RABBITMQ_DEFAULT_USER
