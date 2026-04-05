@@ -32,6 +32,12 @@ Shared infrastructure for the Shopping Cart platform:
 - Never apply manifests directly to the cluster — always go through ArgoCD
 - Never change image tags in `kustomization.yaml` to a floating tag (e.g., `latest`) in production paths
 
+### ESO ExternalSecret Rules
+- `storeRef.kind` must be `ClusterSecretStore` — no namespace-scoped SecretStore is deployed on the remote k3s cluster; using `kind: SecretStore` will cause `SecretSyncedError` on every ExternalSecret
+- `remoteRef.key` paths must match what `bin/acg-up` seeds in Vault KV: `secret/data/redis/cart`, `secret/data/redis/orders-cache`, `secret/data/postgres/orders`, `secret/data/postgres/products`, `secret/data/postgres/payment`, `secret/data/payment/encryption`, `secret/data/payment/stripe`, `secret/data/payment/paypal`
+- `refreshInterval` must be `24h` for static KV credentials — `1h` is for rotating dynamic creds only; the ACG sandbox does not run the Vault DB engine
+- Do not use `database/creds/<role>` paths in `remoteRef.key` — the Vault DB engine is not configured on ACG sandbox; those paths do not exist
+
 ---
 
 ## Security Rules (treat violations as bugs)

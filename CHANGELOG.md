@@ -2,11 +2,16 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-05
+
 ### Added
 - `argocd/applications/data-layer.yaml` — ArgoCD Application for data-layer (PostgreSQL, RabbitMQ, Redis); previously required manual `kubectl apply`
 
 ### Fixed
-- `data-layer/secrets/*.yaml`: update `apiVersion` from `external-secrets.io/v1beta1` to `external-secrets.io/v1` — ESO 0.9.20 on k3s serves `v1`; `v1beta1` was not available, causing ArgoCD sync failures for `data-layer` and `product-catalog`
+- `data-layer/secrets/*.yaml`: switch `storeRef.kind` from `SecretStore` to `ClusterSecretStore` — only a ClusterSecretStore exists on the remote k3s cluster; namespace-scoped SecretStore was never provisioned, causing all ExternalSecrets to fail with SecretSyncedError
+- `data-layer/secrets/postgres-*.yaml`: replace Vault dynamic DB engine paths (`database/creds/<role>`) with static KV paths (`secret/data/postgres/<db>`) — Vault DB engine is not configured on ACG sandbox; static KV credentials seeded by `bin/acg-up`
+- `data-layer/secrets/postgres-*.yaml`: update `refreshInterval` from `1h` to `24h` and align comments to reflect static KV (not rotating) credentials
+- `data-layer/secrets/*.yaml`: update `apiVersion` from `external-secrets.io/v1beta1` to `external-secrets.io/v1` — ESO 1.0.0 dropped v1beta1 serving; GA API required
 - RabbitMQ `configmap.yaml`: add `loopback_users.guest = false` — guest user was restricted to localhost by default, causing "Connection refused" from cross-namespace pods
 - RabbitMQ `statefulset.yaml`: reduce resource requests 500m/1Gi → 200m/512Mi to fit t3.medium with co-located services; keep limits at 1000m/1Gi
 - Scale RabbitMQ from 3 replicas to 1 to reduce memory pressure on t3.medium (3×1Gi requests exhausted available RAM)
