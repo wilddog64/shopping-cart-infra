@@ -1,5 +1,29 @@
 # Active Context: shopping-cart-infra
 
+## Current Status (2026-04-06)
+
+**v0.3.0 spec written:** `docs/plans/v0.3.0-ci-manifest-validation.md` — CI manifest cross-check + post-sync smoke test. Ready to hand off to Codex.
+
+
+
+**Round 2 CrashLoopBackOff fixes — ALL MERGED:**
+- wilddog64/shopping-cart-payment#18 (`fix/networkpolicy-dns`) — MERGED `0fb7aa0` — DNS block fixed (namespaceSelector for kube-system), RabbitMQ env vars wired
+- wilddog64/shopping-cart-product-catalog#17 (`fix/configmap-db-keys`) — MERGED `3a119fe` — DB_NAME fixed to `products`, ConfigMap keys aligned with pydantic aliases
+- wilddog64/shopping-cart-frontend#14 (`fix/nginx-run-dir`) — MERGED `74d994f` — nginx-run emptyDir for /run PID file
+
+**enforce_admins restored** on all three repos after merge.
+
+**Next branches:** `docs/next-improvements` exists on payment, product-catalog, frontend.
+
+**Password rotation spec** written: `k3d-manager/docs/plans/v1.0.4-bugfix-acg-up-random-passwords.md` — not yet handed to Codex.
+
+**Previous round (2026-04-05):**
+- wilddog64/shopping-cart-infra#28 (`fix/app-credentials`) — MERGED `e95b31a` — ExternalSecret key fixes for product-catalog + payment
+- wilddog64/shopping-cart-payment#17 (`fix/network-policy-labels`) — superseded by #18
+- wilddog64/shopping-cart-frontend#13 (`fix/frontend-manifest-port-probe`) — MERGED (nginx-cache emptyDir)
+
+**admin override on shopping-cart-infra** — re-enable: `gh api repos/wilddog64/shopping-cart-infra/branches/main/protection/enforce_admins -X POST -f enabled=true`
+
 ## Current Status (2026-04-03)
 
 **BLOCKED — do not investigate until k3d-manager cold-run gate passes.** Gate: `make down` → `make up` from zero completes with ClusterSecretStore Ready + 3 nodes Ready on a fresh sandbox.
