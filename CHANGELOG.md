@@ -10,6 +10,7 @@
 - `data-layer/secrets/postgres-products-apps-externalsecret.yaml` — sync postgres/products creds into `shopping-cart-apps/product-catalog-secrets` (all env keys)
 
 ### Fixed
+- `data-layer/secrets/postgres-orders-apps-externalsecret.yaml`: add `SPRING_RABBITMQ_USERNAME`/`SPRING_RABBITMQ_PASSWORD` to ESO template — Spring AMQP auto-config was using default `localhost:5672` connection; wiring `SPRING_RABBITMQ_*` creds ensures the auto-configured health indicator authenticates with the correct Vault-managed RabbitMQ credentials
 - `argocd/config/argocd-cm.yaml`: add ExternalSecret custom Lua health check so ArgoCD waits for `SecretSynced` before advancing past wave 0 — prevents StatefulSets from starting before secrets exist
 - `data-layer/secrets/*.yaml` (12 files): add `argocd.argoproj.io/sync-wave: "0"` — ExternalSecrets deploy in wave 0 and must reach Healthy before wave 1 begins
 - `data-layer/redis/*/statefulset.yaml`, `data-layer/rabbitmq/statefulset.yaml`, `data-layer/postgresql/*/statefulset.yaml` (6 files): add `argocd.argoproj.io/sync-wave: "1"` — StatefulSets deploy after ExternalSecrets are synced, eliminating the `CHANGE_ME` / `CreateContainerConfigError` race condition on fresh provision
