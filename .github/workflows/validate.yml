@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -76,3 +77,61 @@ jobs:
                 echo "Building: $dir"
                 kustomize build "$dir" > /dev/null
               done
+
+  manifest-cross-check:
+    name: Manifest Cross-Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          curl -sSL https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64 \
+            -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq
+
+      - name: Run cross-reference check
+        run: bash scripts/check-manifest-refs.sh
+
+  smoke-test:
+    name: Post-Sync Smoke Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.32.0
+
+      - name: Load kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.UBUNTU_K3S_KUBECONFIG }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Wait for pods + dump crash logs
+        run: |
+          deadline=$((SECONDS + 300))
+          while [[ $SECONDS -lt $deadline ]]; do
+            bad=$(kubectl get pods -A --context ubuntu-k3s \
+              --no-headers 2>/dev/null \
+              | awk '$4 ~ /CrashLoopBackOff|Error/ {print $1"/"$2}')
+            if [[ -z "$bad" ]]; then
+              echo "All pods healthy"
+              kubectl get pods -A --context ubuntu-k3s
+              exit 0
+            fi
+            echo "Unhealthy pods: $bad — waiting 10s..."
+            sleep 10
+          done
+
+          echo "## Crash logs" >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' "$bad" | while IFS='/' read -r ns pod; do
+            echo "### $ns/$pod" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            kubectl logs "$pod" -n "$ns" --context ubuntu-k3s --previous \
+              --tail=50 2>&1 >> "$GITHUB_STEP_SUMMARY" || true
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit 1

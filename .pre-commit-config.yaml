@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: manifest-cross-check
+        name: Manifest cross-check (secretKeyRef / configMapKeyRef / ExternalSecret)
+        language: script
+        entry: scripts/check-manifest-refs.sh
+        pass_filenames: false
+        files: \.(yaml|yml)$
