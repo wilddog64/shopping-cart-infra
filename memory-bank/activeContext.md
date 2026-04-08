@@ -1,6 +1,7 @@
 # Active Context: shopping-cart-infra
 
 ## Current Status (2026-04-06)
+**Hardcoded credentials identified:** `docs/issues/2026-04-08-hardcoded-db-credentials.md` — multiple data-layer and identity components use static passwords in manifests. Migration to Vault + ESO planned. Branch: `fix/vault-managed-db-creds`.
 
 **v0.3.1 spec written:** `docs/plans/v0.3.1-fix-order-service-spring-rabbitmq-config.md` — fix order-service CrashLoopBackOff caused by Spring AMQP `CachingConnectionFactory` defaulting to `localhost:5672`. Two files: `shopping-cart-order/k8s/base/configmap.yaml` (add `SPRING_RABBITMQ_HOST/PORT/VIRTUAL_HOST`) + `shopping-cart-infra/data-layer/secrets/postgres-orders-apps-externalsecret.yaml` (add `SPRING_RABBITMQ_USERNAME/PASSWORD` to ESO template — Vault-managed, no hardcoded values). Issue: `docs/issues/2026-04-06-order-service-rabbitmq-health-503.md`. Branch: `fix/order-service-spring-amqp-config`. Ready to hand off to Codex.
 

@@ -77,6 +77,9 @@
 
 ## Pending
 
+### Security & Secret Management
+- [ ] Migrate hardcoded database/cache credentials to Vault + ESO (`docs/issues/2026-04-08-hardcoded-db-credentials.md`)
+
 ### Multi-arch CI fix (Codex ready)
 
 - [x] `shopping-cart-basket` — `@999f8d7` on main (Codex, 2026-03-18)
