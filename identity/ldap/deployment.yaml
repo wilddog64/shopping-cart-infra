@@ -25,8 +25,8 @@ metadata:
     app.kubernetes.io/component: directory
 type: Opaque
 stringData:
-  LDAP_ADMIN_PASSWORD: changeme
-  LDAP_READONLY_USER_PASSWORD: readonly-changeme
+  LDAP_ADMIN_PASSWORD: CHANGE_ME
+  LDAP_READONLY_USER_PASSWORD: CHANGE_ME
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
