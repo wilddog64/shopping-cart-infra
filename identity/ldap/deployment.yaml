@@ -16,19 +16,6 @@ data:
   LDAP_READONLY_USER_USERNAME: "readonly"
 ---
 apiVersion: v1
-kind: Secret
-metadata:
-  name: ldap-secrets
-  namespace: identity
-  labels:
-    app.kubernetes.io/name: ldap
-    app.kubernetes.io/component: directory
-type: Opaque
-stringData:
-  LDAP_ADMIN_PASSWORD: CHANGE_ME
-  LDAP_READONLY_USER_PASSWORD: CHANGE_ME
----
-apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: ldap-data-pvc
