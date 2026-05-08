@@ -314,6 +314,19 @@
       },
       "protocolMappers": [
         {
+          "name": "roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "roles",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
           "name": "groups",
           "protocol": "openid-connect",
           "protocolMapper": "oidc-group-membership-mapper",
