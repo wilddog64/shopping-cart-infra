@@ -1,7 +1,7 @@
 # Retrospective — PR #36: Keycloak frontend OIDC client + ESO migration
 
 **Date:** 2026-05-08
-**PR:** #36 — merged to main (`060e388320e9335167390c76825874f34dbebb0f`)
+**PR:** #36 — already merged to main at `060e388320e9335167390c76825874f34dbebb0f` (retro doc added in PR #37)
 **Participants:** Claude, Gemini, Copilot
 
 ## What Went Well
