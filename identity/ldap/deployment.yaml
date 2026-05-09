@@ -55,16 +55,19 @@ spec:
       initContainers:
       - name: copy-ldif
         image: busybox:1.36
-        command: ["sh", "-c", "cp /ldif-source/* /ldif-dest/ && chown -R 911:911 /ldif-dest/"]
+        command: ["sh", "-c", "cp /ldif-source/* /ldif-staging/"]
         volumeMounts:
         - name: ldap-bootstrap
           mountPath: /ldif-source
           readOnly: true
-        - name: ldap-bootstrap-writable
-          mountPath: /ldif-dest
+        - name: ldap-ldif-staging
+          mountPath: /ldif-staging
       containers:
       - name: openldap
         image: osixia/openldap:1.5.0
+        env:
+        - name: LDAP_SEED_INTERNAL_LDIF_PATH
+          value: /ldif-staging
         ports:
         - name: ldap
           containerPort: 389
@@ -87,8 +90,8 @@ spec:
           mountPath: /var/lib/ldap
         - name: ldap-config-vol
           mountPath: /etc/ldap/slapd.d
-        - name: ldap-bootstrap-writable
-          mountPath: /container/service/slapd/assets/config/bootstrap/ldif/custom
+        - name: ldap-ldif-staging
+          mountPath: /ldif-staging
         livenessProbe:
           tcpSocket:
             port: ldap
@@ -108,7 +111,7 @@ spec:
       - name: ldap-bootstrap
         configMap:
           name: ldap-bootstrap
-      - name: ldap-bootstrap-writable
+      - name: ldap-ldif-staging
         emptyDir: {}
 ---
 apiVersion: v1
