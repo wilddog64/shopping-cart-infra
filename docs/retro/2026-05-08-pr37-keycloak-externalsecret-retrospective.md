@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-08
 **Milestone:** Keycloak ExternalSecret missing files
-**PR:** #37 — merged to main
+**PR:** #37 — merged to main 2026-05-08 (this retrospective authored post-merge, included in PR #38)
 **Participants:** Claude, Codex, Copilot
 
 ## What Went Well
