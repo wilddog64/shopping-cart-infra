@@ -63,7 +63,7 @@ resources:
 
 ## Rules
 
-- No other files touched
+- No other manifest changes required beyond `identity/ldap/kustomization.yaml`
 - `kustomize build identity/ldap` must succeed with zero errors after the change
 
 ---
@@ -84,7 +84,6 @@ fix(ldap): remove duplicate ldap-secrets-externalsecret.yaml from kustomization
 
 ## What NOT to Do
 
-- Do NOT create a PR
 - Do NOT skip pre-commit hooks (`--no-verify`)
-- Do NOT modify any file other than `identity/ldap/kustomization.yaml`
+- Do NOT modify any manifest file other than `identity/ldap/kustomization.yaml`
 - Do NOT commit to `main`

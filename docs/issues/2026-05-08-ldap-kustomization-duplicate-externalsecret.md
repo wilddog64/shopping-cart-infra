@@ -9,7 +9,7 @@
 
 ## Symptom
 
-`make up` completes successfully, but the ArgoCD `shopping-cart-identity` Application fails to sync with:
+`kustomize build identity/ldap` fails locally, and the ArgoCD `shopping-cart-identity` Application fails to sync with:
 
 ```
 Failed to load target state: failed to generate manifest for source 1 of 1:
@@ -36,8 +36,8 @@ resources:
 ```
 
 Kustomize disallows two resources with the same Group/Version/Kind/Namespace/Name.
-The ArgoCD Application (`services/shopping-cart-identity/kustomization.yaml` in k3d-manager)
-pulls `identity/ldap?ref=main` from this repo, so it inherits the broken manifest.
+The ArgoCD Application (`argocd/applications/identity.yaml` in this repo) sources
+`identity/ldap` at `targetRevision: HEAD`, so it inherits the broken manifest.
 
 ---
 
