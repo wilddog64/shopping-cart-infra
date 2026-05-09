@@ -20,6 +20,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: ldap-data-pvc
   namespace: identity
+  annotations:
+    argocd.argoproj.io/sync-options: "Replace=true"
   labels:
     app.kubernetes.io/name: ldap
 spec:
