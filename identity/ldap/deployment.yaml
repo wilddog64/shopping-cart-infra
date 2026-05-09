@@ -52,6 +52,7 @@ spec:
         app.kubernetes.io/name: ldap
         app.kubernetes.io/component: directory
     spec:
+      enableServiceLinks: false
       initContainers:
       - name: copy-ldif
         image: busybox:1.36
