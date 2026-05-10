@@ -62,13 +62,11 @@ spec:
           mountPath: /ldif-source
           readOnly: true
         - name: ldap-ldif-staging
-          mountPath: /ldif-staging
+          mountPath: /container/service/slapd/assets/config/bootstrap/ldif/custom
       containers:
       - name: openldap
         image: osixia/openldap:1.5.0
         env:
-        - name: LDAP_SEED_INTERNAL_LDIF_PATH
-          value: /ldif-staging
         ports:
         - name: ldap
           containerPort: 389
@@ -92,7 +90,7 @@ spec:
         - name: ldap-config-vol
           mountPath: /etc/ldap/slapd.d
         - name: ldap-ldif-staging
-          mountPath: /ldif-staging
+          mountPath: /container/service/slapd/assets/config/bootstrap/ldif/custom
         livenessProbe:
           tcpSocket:
             port: ldap
