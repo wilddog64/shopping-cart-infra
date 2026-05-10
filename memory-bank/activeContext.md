@@ -12,6 +12,12 @@
 
 ## Current Status (2026-05-02)
 
+**Keycloak OIDC Issuer Mismatch — SSO blocked:** 
+- Issue: ArgoCD expects HTTP, Keycloak returns HTTPS due to `KC_PROXY: edge`. 
+- Status: Bug documented in `docs/issues/2026-05-10-keycloak-oidc-issuer-mismatch.md`. 
+- Action: Need to set `KC_PROXY: none` to align protocols. 
+
+
 **order-service CrashLoopBackOff — schema expansion fix FIXED (`2e8d0bf`):**
 - Issue: Missing 11 columns in `orders` table (timestamps, shipping, tracking).
 - Spec: `docs/bugs/2026-05-02-order-service-schema-expansion-fix.md`. Branch: `bug/order-service-schema-expansion`.
