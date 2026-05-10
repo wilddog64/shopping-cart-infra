@@ -409,3 +409,9 @@ Apache 2.0
   - [shopping-cart-order](https://github.com/wilddog64/shopping-cart-order)
   - [shopping-cart-payment](https://github.com/wilddog64/shopping-cart-payment)
   - [shopping-cart-basket](https://github.com/wilddog64/shopping-cart-basket)
+
+## Identity Stack (v0.3.0)
+The repository now includes a fully managed identity provider stack:
+- **Keycloak:** OIDC provider for SSO, sitting behind Istio.
+- **OpenLDAP:** User directory backend.
+- **Vault ESO:** All credentials are dynamically synced from Vault.
