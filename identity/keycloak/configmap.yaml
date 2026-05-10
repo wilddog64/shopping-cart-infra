@@ -14,7 +14,7 @@ data:
   KC_DB_URL_DATABASE: keycloak
   KC_HOSTNAME: keycloak.shopping-cart.local
   KC_HOSTNAME_STRICT: "false"
-  KC_PROXY: edge
+  KC_PROXY: none
   KC_HTTP_ENABLED: "true"
   KC_HEALTH_ENABLED: "true"
   KC_METRICS_ENABLED: "true"
