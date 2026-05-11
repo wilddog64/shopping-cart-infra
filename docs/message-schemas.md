@@ -124,7 +124,7 @@ All messages use this envelope format:
 
 ### Order Events
 
-#### order.created (v1.1)
+#### order.created (v1.0)
 
 Published when a new order is placed.
 
@@ -577,7 +577,7 @@ Schema versions follow semver: `MAJOR.MINOR`
 
 ### Migration Example
 
-**v1.1 → v1.1**: Add optional `metadata` field
+**v1.0 → v1.1**: Add optional `metadata` field
 
 ```json
 // v1.1
