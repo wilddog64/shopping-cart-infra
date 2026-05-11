@@ -6,7 +6,7 @@ The identity stack (Keycloak + OpenLDAP) is fully integrated with Vault-backed s
 
 ## Recent Changes
 - **v0.3.0 SHIPPED:** Comprehensive identity integration.
-- **SSO Fix:** Aligned OIDC protocols by setting `KC_PROXY: none`.
+- **SSO Fix:** Aligned OIDC protocols by enforcing `KC_HOSTNAME_STRICT: true` and `KC_HOSTNAME_URL`.
 - **Secret Migration:** All identity secrets moved to ExternalSecrets + Vault.
 - **LDAP Stability:** Fixed LDIF bootstrap writability via initContainer.
 
