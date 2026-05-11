@@ -11,20 +11,20 @@ Vault is configured with:
 
 ### 1. Via Istio Gateway (Recommended)
 
-Vault is accessible through the Istio ingress gateway at `vault.dev.local.me`:
+Vault is accessible through the Istio ingress gateway at `vault.shopping-cart.local`:
 
 ```bash
 # Get the ingress gateway IP
 INGRESS_IP=$(kubectl get svc -n istio-system istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 # Access Vault API (using Host header)
-curl -H "Host: vault.dev.local.me" http://$INGRESS_IP/v1/sys/health
+curl -H "Host: vault.shopping-cart.local" http://$INGRESS_IP/v1/sys/health
 
 # Or add to /etc/hosts (requires sudo)
-echo "$INGRESS_IP vault.dev.local.me" | sudo tee -a /etc/hosts
+echo "$INGRESS_IP vault.shopping-cart.local" | sudo tee -a /etc/hosts
 
 # Then access directly
-curl http://vault.dev.local.me/v1/sys/health
+curl http://vault.shopping-cart.local/v1/sys/health
 ```
 
 ### 2. Via kubectl port-forward
@@ -84,7 +84,7 @@ VAULT_TOKEN=$(kubectl get secret -n vault vault-root -o jsonpath='{.data.root_to
 
 # Request credentials via API
 curl -H "X-Vault-Token: $VAULT_TOKEN" \
-     -H "Host: vault.dev.local.me" \
+     -H "Host: vault.shopping-cart.local" \
      http://10.211.55.14/v1/database/creds/products-readonly | jq
 ```
 
@@ -308,7 +308,7 @@ kubectl get gateway -n vault
 kubectl get virtualservice -n vault
 
 # Test access
-curl -H "Host: vault.dev.local.me" http://10.211.55.14/v1/sys/health
+curl -H "Host: vault.shopping-cart.local" http://10.211.55.14/v1/sys/health
 ```
 
 ## Security Best Practices
@@ -341,3 +341,12 @@ curl -H "Host: vault.dev.local.me" http://10.211.55.14/v1/sys/health
 3. **Enable Kubernetes auth** method for pod authentication
 4. **Set up monitoring** for Vault metrics and audit logs
 5. **Configure backup** for Vault data
+
+## Identity Secrets (v0.3.0)
+
+Keycloak and LDAP secrets are managed via KV-v2 engine:
+- LDAP Admin: `secret/ldap/admin`
+- Keycloak Admin: `secret/keycloak/admin`
+- OIDC Clients: `secret/keycloak/clients`
+
+These are synced to the cluster automatically via ExternalSecrets.
