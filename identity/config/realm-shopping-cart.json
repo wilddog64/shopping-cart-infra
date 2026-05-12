@@ -134,9 +134,6 @@
       "serviceAccountsEnabled": false,
       "publicClient": false,
       "protocol": "openid-connect",
-      "attributes": {
-        "pkce.code.challenge.method": "S256"
-      },
       "protocolMappers": [
         {
           "name": "groups",
