@@ -6,6 +6,7 @@ Following the successful shipping of the Identity Stack (v0.3.0), focus shifts t
 
 ## Recent Changes
 - **v0.3.0 SHIPPED:** Identity stack integrated (Keycloak/LDAP/SSO/Vault-ESO).
+- **Identity Regression Fix:** Resolved Keycloak CrashLoopBackOff by removing conflicting \`KC_HOSTNAME\` vs \`KC_HOSTNAME_URL\` (PR #46). Fixed DB auth failure by aligning Postgres internal password with Vault-synced secret.
 - **Branch Created:** shopping-cart-infra-v0.4.0 for the next milestone.
 
 ## Next Steps
