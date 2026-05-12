@@ -1,4 +1,4 @@
-# Keycloak LDAP login resolves by `uid` instead of the email-style login that Argo CD users are entering
+# Keycloak LDAP login is resolved using `uid` instead of the email-style login that Argo CD users enter
 
 ## What was tested
 
