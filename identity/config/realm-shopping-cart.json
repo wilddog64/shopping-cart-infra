@@ -370,7 +370,7 @@
             "other"
           ],
           "usernameLDAPAttribute": [
-            "uid"
+            "mail"
           ],
           "rdnLDAPAttribute": [
             "uid"
