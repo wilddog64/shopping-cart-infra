@@ -25,7 +25,7 @@ data:
   # LDAP Configuration
   LDAP_CONNECTION_URL: ldap://ldap.identity.svc.cluster.local:389
   LDAP_USERS_DN: ou=users,dc=shopping-cart,dc=local
-  LDAP_BIND_DN: cn=admin,dc=shopping-cart,dc=local
+  LDAP_BIND_DN: cn=ldap-admin,dc=shopping-cart,dc=local
   LDAP_USER_OBJECT_CLASSES: inetOrgPerson,organizationalPerson
   LDAP_UUID_ATTRIBUTE: entryUUID
   LDAP_USERNAME_ATTRIBUTE: uid

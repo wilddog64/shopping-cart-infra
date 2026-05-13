@@ -22,7 +22,6 @@ data:
       - openid
       - profile
       - email
-      - groups
     # Map Keycloak groups to ArgoCD
     requestedIDTokenClaims:
       groups:
