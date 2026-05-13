@@ -39,12 +39,54 @@ spec:
             sleep 5
           done
 
-          /opt/keycloak/bin/kc.sh import --file /realm/realm-shopping-cart.json
+          escape_sed() {
+            printf '%s' "$1" | sed -e 's/[\/&]/\\&/g'
+          }
+
+          render_realm() {
+            local input_file="/realm/realm-shopping-cart.json"
+            local output_file="/tmp/realm-shopping-cart.rendered.json"
+            local argocd_client_secret order_service_client_secret product_catalog_client_secret grafana_client_secret ldap_bind_dn ldap_bind_credential
+
+            argocd_client_secret="$(escape_sed "${ARGOCD_CLIENT_SECRET}")"
+            order_service_client_secret="$(escape_sed "${ORDER_SERVICE_CLIENT_SECRET}")"
+            product_catalog_client_secret="$(escape_sed "${PRODUCT_CATALOG_CLIENT_SECRET}")"
+            grafana_client_secret="$(escape_sed "${GRAFANA_CLIENT_SECRET}")"
+            ldap_bind_dn="$(escape_sed "${LDAP_BIND_DN}")"
+            ldap_bind_credential="$(escape_sed "${LDAP_BIND_CREDENTIAL}")"
+
+            sed               -e "s/\${ARGOCD_CLIENT_SECRET}/${argocd_client_secret}/g"               -e "s/\${ORDER_SERVICE_CLIENT_SECRET}/${order_service_client_secret}/g"               -e "s/\${PRODUCT_CATALOG_CLIENT_SECRET}/${product_catalog_client_secret}/g"               -e "s/\${GRAFANA_CLIENT_SECRET}/${grafana_client_secret}/g"               -e "s/\${LDAP_BIND_DN}/${ldap_bind_dn}/g"               -e "s/\${LDAP_BIND_CREDENTIAL}/${ldap_bind_credential}/g"               "${input_file}" > "${output_file}"
+
+            /opt/keycloak/bin/kc.sh import --file "${output_file}"
+          }
+
+          render_realm
         envFrom:
         - configMapRef:
             name: keycloak-config
         - secretRef:
             name: keycloak-secrets
+        env:
+        - name: ARGOCD_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: argocd-client-secret
+        - name: ORDER_SERVICE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: order-service-client-secret
+        - name: PRODUCT_CATALOG_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: product-catalog-client-secret
+        - name: GRAFANA_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: grafana-client-secret
         volumeMounts:
         - name: keycloak-realm-import
           mountPath: /realm
