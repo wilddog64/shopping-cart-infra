@@ -3,7 +3,7 @@
 ## What was tested
 
 - Reviewed the live Keycloak pod logs after the repeated SSO failure.
-- Confirmed the Keycloak init/startup path imports `identity/config/realm-shopping-cart.json` directly from the shopping-cart-infra repo.
+- Confirmed the Keycloak init/startup path imports `identity/keycloak/realm-shopping-cart.json` from the shopping-cart-infra repo.
 - Rechecked the raw realm JSON and found the LDAP federation section still contains placeholder values for the bind DN and bind credential.
 
 ## Actual output
@@ -14,7 +14,7 @@
 
 ## Root cause
 
-The Keycloak startup import path was feeding `identity/config/realm-shopping-cart.json` to `kc.sh import` without rendering the `${...}` placeholders first. As a result, the LDAP provider was imported with literal placeholder text instead of the live bind DN and bind credential values.
+The Keycloak startup import path was feeding `identity/keycloak/realm-shopping-cart.json` to `kc.sh import` without rendering the `${...}` placeholders first. As a result, the LDAP provider was imported with literal placeholder text instead of the live bind DN and bind credential values.
 
 ## Fix
 

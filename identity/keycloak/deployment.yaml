@@ -66,6 +66,27 @@ spec:
             name: keycloak-config
         - secretRef:
             name: keycloak-secrets
+        env:
+        - name: ARGOCD_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: argocd-client-secret
+        - name: ORDER_SERVICE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: order-service-client-secret
+        - name: PRODUCT_CATALOG_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: product-catalog-client-secret
+        - name: GRAFANA_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: grafana-client-secret
         volumeMounts:
         - name: keycloak-realm-import
           mountPath: /realm
