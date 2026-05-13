@@ -12,6 +12,7 @@ data:
   LDAP_DOMAIN: "shopping-cart.local"
   LDAP_BASE_DN: "dc=shopping-cart,dc=local"
   LDAP_TLS: "false"
+  LDAP_ADMIN_USERNAME: "ldap-admin"
   LDAP_READONLY_USER: "true"
   LDAP_READONLY_USER_USERNAME: "readonly"
 ---
