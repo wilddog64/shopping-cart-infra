@@ -25,6 +25,30 @@ spec:
         prometheus.io/port: "8080"
         prometheus.io/path: "/metrics"
     spec:
+      initContainers:
+      - name: realm-import
+        image: quay.io/keycloak/keycloak:24.0
+        command:
+        - /bin/bash
+        - -euo
+        - pipefail
+        - -c
+        - |
+          until bash -lc '</dev/tcp/postgres-keycloak.identity.svc.cluster.local/5432' >/dev/null 2>&1; do
+            echo "Waiting for postgres-keycloak..."
+            sleep 5
+          done
+
+          /opt/keycloak/bin/kc.sh import --file /realm/realm-shopping-cart.json
+        envFrom:
+        - configMapRef:
+            name: keycloak-config
+        - secretRef:
+            name: keycloak-secrets
+        volumeMounts:
+        - name: keycloak-realm-import
+          mountPath: /realm
+          readOnly: true
       containers:
       - name: keycloak
         image: quay.io/keycloak/keycloak:24.0
@@ -69,6 +93,10 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 10
           failureThreshold: 30
+      volumes:
+      - name: keycloak-realm-import
+        configMap:
+          name: keycloak-realm-import
 ---
 apiVersion: v1
 kind: Service

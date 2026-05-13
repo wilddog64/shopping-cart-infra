@@ -5,6 +5,7 @@
 - Reviewed the live Keycloak pod diagnosis from Copilot.
 - Rechecked the current shopping-cart identity manifests after the `ldap-admin` bind DN experiment.
 - Confirmed the Keycloak and LDAP manifests still source the bind password from the shared Vault-backed `ldap/admin` path.
+- Confirmed the Keycloak startup path now re-imports the realm JSON on pod start so existing realms pick up the bind DN from `identity/config/realm-shopping-cart.json`.
 
 ## Actual output
 
@@ -27,3 +28,4 @@ The safest repo-side fix is to restore the canonical OpenLDAP root account DN, `
 
 - Re-sync the identity stack after the branch merges and confirm the live `keycloak-secrets` ExternalSecret still sources `LDAP_BIND_CREDENTIAL` from `secret/data/ldap/admin`.
 - Retry Argo CD SSO with the canonical shopping-cart login after the deployment refreshes.
+- The realm import now runs from the Keycloak pod startup path, so the `LDAP_BIND_DN` value in `identity/keycloak/configmap.yaml` is applied to already-provisioned realms via `identity/config/realm-shopping-cart.json`.

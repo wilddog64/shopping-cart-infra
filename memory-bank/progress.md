@@ -12,7 +12,7 @@
 - [ ] Grafana Dashboard: Identity Overview
 - [ ] Grafana Dashboard: Database Health
 - [ ] Cross-cluster ESO validation (App cluster)
-- [ ] Keycloak LDAP bind DN recovery after `ldap-admin` experiment
+- [ ] Keycloak LDAP bind DN recovery after `ldap-admin` experiment — realm import now re-applies the repo source of truth at Keycloak startup so existing realms pick up the ConfigMap bind DN.
 
 ## Milestone: v0.3.0 (Identity & Hardening) — ARCHIVED
 - [x] Keycloak + LDAP deployment manifests
