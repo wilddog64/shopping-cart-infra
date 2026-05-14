@@ -13,6 +13,7 @@ configMapGenerator:
   - KC_DB_URL_HOST=postgres-keycloak.identity.svc.cluster.local
   - KC_DB_URL_PORT=5432
   - KC_DB_URL_DATABASE=keycloak
+  - KC_DB_USERNAME=keycloak
   - KC_HOSTNAME_URL=http://keycloak.shopping-cart.local
   - KC_HOSTNAME_STRICT=true
   - KC_PROXY=edge

@@ -25,6 +25,7 @@ The realm import continued to rely on `${LDAP_BIND_DN}` templating for the LDAP 
   - `cn=admin,dc=shopping-cart,dc=local`
 - Keep the bind credential templated from the Secret.
 - Remove the bind-DN substitution from the Keycloak initContainer render step so the import path no longer depends on it.
+- Keep `identity/keycloak/realm-shopping-cart.json` as the single import source so the rendered copy and the imported copy stay aligned.
 
 ## Follow-up
 - Rebuild the identity stack after the branch merges.
