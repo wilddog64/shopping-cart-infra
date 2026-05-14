@@ -25,6 +25,10 @@ This repository provides:
 
 **Planned:** RabbitMQ message queue for asynchronous order processing and event-driven architecture (see [Message Queue Implementation Plan](docs/plans/message-queue-implementation.md))
 
+## Release Notes
+
+- `v0.4.0` - Keycloak realm sync no longer replays the `shopping-cart` import at startup; see [docs/issues/2026-05-13-keycloak-realm-import-should-skip-existing-shopping-cart-realm.md](docs/issues/2026-05-13-keycloak-realm-import-should-skip-existing-shopping-cart-realm.md)
+
 ## Architecture Reference
 
 For detailed architecture documentation, design decisions, and GitOps patterns, see **[docs/architecture.md](docs/architecture.md)**.
