@@ -36,3 +36,8 @@ Introduce a dedicated reconcile step outside Keycloak startup:
 ## Follow-up
 - Implement the reconcile path in `shopping-cart-infra`.
 - Update `k3d-manager` docs/memory-bank with the final command flow once the live reconcile step exists.
+
+## Implementation
+- Removed the boot-time realm import from the Keycloak deployment.
+- Kept the rendered realm JSON mounted in the pod for live reconciliation.
+- Added `bin/keycloak-reconcile.sh` and `make keycloak-reconcile` to log into the live Keycloak instance and run `partialImport` with `ifResourceExists=OVERWRITE`.
