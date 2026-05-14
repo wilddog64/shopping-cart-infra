@@ -94,7 +94,13 @@ spec:
               return 0
             fi
 
-            sed               -e "s/\${ARGOCD_CLIENT_SECRET}/${argocd_client_secret}/g"               -e "s/\${ORDER_SERVICE_CLIENT_SECRET}/${order_service_client_secret}/g"               -e "s/\${PRODUCT_CATALOG_CLIENT_SECRET}/${product_catalog_client_secret}/g"               -e "s/\${GRAFANA_CLIENT_SECRET}/${grafana_client_secret}/g"               -e "s/\${LDAP_BIND_CREDENTIAL}/${ldap_bind_credential}/g"               "${input_file}" > "${output_file}"
+            sed \
+              -e "s/\${ARGOCD_CLIENT_SECRET}/${argocd_client_secret}/g" \
+              -e "s/\${ORDER_SERVICE_CLIENT_SECRET}/${order_service_client_secret}/g" \
+              -e "s/\${PRODUCT_CATALOG_CLIENT_SECRET}/${product_catalog_client_secret}/g" \
+              -e "s/\${GRAFANA_CLIENT_SECRET}/${grafana_client_secret}/g" \
+              -e "s/\${LDAP_BIND_CREDENTIAL}/${ldap_bind_credential}/g" \
+              "${input_file}" > "${output_file}"
 
             /opt/keycloak/bin/kc.sh import --file "${output_file}" --db=postgres --override=true
           }
