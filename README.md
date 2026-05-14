@@ -219,6 +219,9 @@ This repository integrates with GitHub Actions and Jenkins for automated contain
 - **[Container Image Workflow Guide](docs/container-image-workflow.md)** - Complete guide for building and pushing images to GHCR
 - **[GitHub Actions & Jenkins Webhook Setup](docs/github-actions-webhook-setup.md)** - Step-by-step integration instructions
 
+### Release Notes
+- **[Keycloak realm import idempotency](docs/issues/2026-05-13-keycloak-realm-import-should-skip-existing-shopping-cart-realm.md)** - skips startup import when the `shopping-cart` realm already exists, so repeated Keycloak startups do not fail with duplicate-key conflicts.
+
 ### Automation Scripts
 Located in `bin/`:
 - **`build-and-push.sh`** - Build and push container images locally for testing
