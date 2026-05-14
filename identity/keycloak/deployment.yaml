@@ -25,7 +25,6 @@ spec:
         prometheus.io/port: "8080"
         prometheus.io/path: "/metrics"
     spec:
-      volumes:
       containers:
       - name: keycloak
         image: quay.io/keycloak/keycloak:24.0

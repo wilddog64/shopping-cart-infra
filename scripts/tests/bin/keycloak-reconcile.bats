@@ -6,8 +6,10 @@
   [ "$status" -eq 0 ]
   [[ "$output" == *"argocd.argoproj.io/hook: PostSync"* ]]
   [[ "$output" == *"argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded"* ]]
+  [[ "$output" == *"activeDeadlineSeconds: 900"* ]]
   [[ "$output" == *"kcadm.sh create partialImport"* ]]
   [[ "$output" == *"ifResourceExists=OVERWRITE"* ]]
+  [[ "$output" == *"LDAP_BIND_CREDENTIAL"* ]]
   [[ "$output" != *"kc.sh import"* ]]
   [[ "$output" != *"keycloak-reconcile.sh"* ]]
 }

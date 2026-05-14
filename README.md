@@ -220,7 +220,7 @@ This repository integrates with GitHub Actions and Jenkins for automated contain
 - **[GitHub Actions & Jenkins Webhook Setup](docs/github-actions-webhook-setup.md)** - Step-by-step integration instructions
 
 ### Release Notes
-- **[Keycloak live JSON reconcile](docs/issues/2026-05-14-keycloak-live-json-reconcile-without-rebuild.md)** - uses an Argo CD `PostSync` hook Job to apply the realm JSON without rebuilding clusters.
+- **[Keycloak live JSON reconcile](docs/issues/2026-05-14-keycloak-live-json-reconcile-without-rebuild.md)** - ships an Argo CD `PostSync` hook Job plus manifest/test updates so realm JSON can be applied live without rebuilding clusters.
 
 ### Automation Scripts
 Located in `bin/`:

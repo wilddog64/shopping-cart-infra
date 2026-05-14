@@ -13,6 +13,7 @@ metadata:
     app.kubernetes.io/part-of: shopping-cart
 spec:
   backoffLimit: 1
+  activeDeadlineSeconds: 900
   template:
     metadata:
       labels:
@@ -41,22 +42,31 @@ spec:
           render_realm() {
             local input_file="/realm/realm-shopping-cart.json"
             local output_file="/tmp/realm-shopping-cart.rendered.json"
-            local argocd_client_secret order_service_client_secret product_catalog_client_secret grafana_client_secret
+            local argocd_client_secret order_service_client_secret product_catalog_client_secret grafana_client_secret ldap_bind_credential
 
             argocd_client_secret="$(escape_sed "${ARGOCD_CLIENT_SECRET}")"
             order_service_client_secret="$(escape_sed "${ORDER_SERVICE_CLIENT_SECRET}")"
             product_catalog_client_secret="$(escape_sed "${PRODUCT_CATALOG_CLIENT_SECRET}")"
             grafana_client_secret="$(escape_sed "${GRAFANA_CLIENT_SECRET}")"
+            ldap_bind_credential="$(escape_sed "${LDAP_BIND_CREDENTIAL}")"
 
             sed \
               -e "s/\${ARGOCD_CLIENT_SECRET}/${argocd_client_secret}/g" \
               -e "s/\${ORDER_SERVICE_CLIENT_SECRET}/${order_service_client_secret}/g" \
               -e "s/\${PRODUCT_CATALOG_CLIENT_SECRET}/${product_catalog_client_secret}/g" \
               -e "s/\${GRAFANA_CLIENT_SECRET}/${grafana_client_secret}/g" \
+              -e "s/\${LDAP_BIND_CREDENTIAL}/${ldap_bind_credential}/g" \
               "${input_file}" > "${output_file}"
           }
 
+          deadline_seconds="${KEYCLOAK_RECONCILE_TIMEOUT_SECONDS:-900}"
+          deadline_epoch="$(($(date +%s) + deadline_seconds))"
+
           until bash -lc '</dev/tcp/keycloak.identity.svc.cluster.local/80' >/dev/null 2>&1; do
+            if [ "$(date +%s)" -ge "${deadline_epoch}" ]; then
+              echo "Timed out waiting for Keycloak service"
+              exit 1
+            fi
             echo "Waiting for Keycloak service..."
             sleep 5
           done
