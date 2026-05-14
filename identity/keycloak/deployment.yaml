@@ -46,16 +46,15 @@ spec:
           render_realm() {
             local input_file="/realm/realm-shopping-cart.json"
             local output_file="/tmp/realm-shopping-cart.rendered.json"
-            local argocd_client_secret order_service_client_secret product_catalog_client_secret grafana_client_secret ldap_bind_dn ldap_bind_credential
+            local argocd_client_secret order_service_client_secret product_catalog_client_secret grafana_client_secret ldap_bind_credential
 
             argocd_client_secret="$(escape_sed "${ARGOCD_CLIENT_SECRET}")"
             order_service_client_secret="$(escape_sed "${ORDER_SERVICE_CLIENT_SECRET}")"
             product_catalog_client_secret="$(escape_sed "${PRODUCT_CATALOG_CLIENT_SECRET}")"
             grafana_client_secret="$(escape_sed "${GRAFANA_CLIENT_SECRET}")"
-            ldap_bind_dn="$(escape_sed "${LDAP_BIND_DN}")"
             ldap_bind_credential="$(escape_sed "${LDAP_BIND_CREDENTIAL}")"
 
-            sed               -e "s/\${ARGOCD_CLIENT_SECRET}/${argocd_client_secret}/g"               -e "s/\${ORDER_SERVICE_CLIENT_SECRET}/${order_service_client_secret}/g"               -e "s/\${PRODUCT_CATALOG_CLIENT_SECRET}/${product_catalog_client_secret}/g"               -e "s/\${GRAFANA_CLIENT_SECRET}/${grafana_client_secret}/g"               -e "s/\${LDAP_BIND_DN}/${ldap_bind_dn}/g"               -e "s/\${LDAP_BIND_CREDENTIAL}/${ldap_bind_credential}/g"               "${input_file}" > "${output_file}"
+            sed               -e "s/\${ARGOCD_CLIENT_SECRET}/${argocd_client_secret}/g"               -e "s/\${ORDER_SERVICE_CLIENT_SECRET}/${order_service_client_secret}/g"               -e "s/\${PRODUCT_CATALOG_CLIENT_SECRET}/${product_catalog_client_secret}/g"               -e "s/\${GRAFANA_CLIENT_SECRET}/${grafana_client_secret}/g"               -e "s/\${LDAP_BIND_CREDENTIAL}/${ldap_bind_credential}/g"               "${input_file}" > "${output_file}"
 
             /opt/keycloak/bin/kc.sh import --file "${output_file}"
           }

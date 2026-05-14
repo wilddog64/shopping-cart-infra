@@ -13,6 +13,7 @@
 - [ ] Grafana Dashboard: Database Health
 - [ ] Cross-cluster ESO validation (App cluster)
 - [ ] Keycloak LDAP bind DN recovery after `ldap-admin` experiment — realm import now re-applies the repo source of truth at Keycloak startup so existing realms pick up the ConfigMap bind DN.
+- [x] Keycloak realm import no longer depends on templated LDAP bind DN — the canonical DN is now literal in the realm template and the initContainer only renders the bind credential from Secret data. Issue doc: `docs/issues/2026-05-13-keycloak-realm-import-invalid-dn-literal-binddn.md`.
 
 ## Milestone: v0.3.0 (Identity & Hardening) — ARCHIVED
 - [x] Keycloak + LDAP deployment manifests

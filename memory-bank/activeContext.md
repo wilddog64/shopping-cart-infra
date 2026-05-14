@@ -10,6 +10,7 @@ Following the successful shipping of the Identity Stack (v0.3.0), focus shifts t
 - **Branch Created:** shopping-cart-infra-v0.4.0 for the next milestone.
 - **LDAP Bind Recovery:** Investigating a live Keycloak LDAP `Invalid Credentials` failure after the `ldap-admin` bind DN experiment. The conservative repo-side fix restores the canonical OpenLDAP root DN `admin` in both Keycloak and LDAP manifests and now re-imports the realm on Keycloak startup so existing realms pick up the bind identity from the ConfigMap/source JSON.
 - **Copilot Review Follow-up:** Copilot flagged that the Keycloak ConfigMap values were not being applied to already-initialized realms. The current fix makes `identity/config/realm-shopping-cart.json` the startup import source of truth so the live realm refreshes from repo state.
+- **NEW FINDING:** The Keycloak realm import was still templating the LDAP bind DN, which let a bad render path surface as `javax.naming.InvalidNameException: invalid DN` during Argo CD SSO. The branch now hardcodes the canonical bind DN in the realm template and keeps only the bind credential templated from Secret data. Issue doc: `docs/issues/2026-05-13-keycloak-realm-import-invalid-dn-literal-binddn.md`.
 
 ## Next Steps
 - **Observability Stage 1:** Deploy ServiceMonitors for Keycloak, LDAP, and databases.

@@ -391,7 +391,7 @@
             "simple"
           ],
           "bindDn": [
-            "${LDAP_BIND_DN}"
+            "cn=admin,dc=shopping-cart,dc=local"
           ],
           "bindCredential": [
             "${LDAP_BIND_CREDENTIAL}"
