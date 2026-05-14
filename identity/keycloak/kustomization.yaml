@@ -40,6 +40,7 @@ resources:
 - keycloak-secrets-externalsecret.yaml
 - keycloak-client-secrets-externalsecret.yaml
 - deployment.yaml
+- keycloak-reconcile-hook-job.yaml
 
 labels:
 - pairs:

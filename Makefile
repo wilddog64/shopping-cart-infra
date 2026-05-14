@@ -10,7 +10,7 @@
 .PHONY: monitoring-status grafana prometheus alertmanager alerts
 .PHONY: k8s-status k8s-pods k8s-services
 .PHONY: argocd-status argocd-ui argocd-apps argocd-sync argocd-deploy argocd-project argocd-delete
-.PHONY: identity-status identity-deploy identity-delete keycloak-ui keycloak-logs keycloak-reconcile ldap-status ldap-shell
+.PHONY: identity-status identity-deploy identity-delete keycloak-ui keycloak-logs ldap-status ldap-shell
 
 # Default namespace
 NAMESPACE ?= shopping-cart-data
@@ -263,9 +263,6 @@ keycloak-ui: ## Port-forward to Keycloak UI
 
 keycloak-logs: ## Show Keycloak logs
 	kubectl logs -n identity -l app.kubernetes.io/name=keycloak --tail=100 -f
-
-keycloak-reconcile: ## Reconcile the shopping-cart realm live in Keycloak
-	@./bin/keycloak-reconcile.sh
 
 ldap-status: ## Show LDAP status
 	@echo "${BLUE}=== LDAP Status ===${RESET}"

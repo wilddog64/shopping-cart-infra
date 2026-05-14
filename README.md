@@ -220,14 +220,13 @@ This repository integrates with GitHub Actions and Jenkins for automated contain
 - **[GitHub Actions & Jenkins Webhook Setup](docs/github-actions-webhook-setup.md)** - Step-by-step integration instructions
 
 ### Release Notes
-- **[Keycloak live JSON reconcile](docs/issues/2026-05-14-keycloak-live-json-reconcile-without-rebuild.md)** - uses a live Keycloak partial import reconcile command so realm JSON can be applied without rebuilding clusters.
+- **[Keycloak live JSON reconcile](docs/issues/2026-05-14-keycloak-live-json-reconcile-without-rebuild.md)** - uses an Argo CD `PostSync` hook Job to apply the realm JSON without rebuilding clusters.
 
 ### Automation Scripts
 Located in `bin/`:
 - **`build-and-push.sh`** - Build and push container images locally for testing
 - **`setup-service-repo.sh`** - Automate GitHub repository creation with Actions workflows
 - **`deploy-infra.sh`** - Deploy complete infrastructure stack
-- **`keycloak-reconcile.sh`** - Reconcile the live Keycloak realm from the rendered shopping-cart realm JSON
 
 ### Example: Automated CI Pipeline
 ```bash

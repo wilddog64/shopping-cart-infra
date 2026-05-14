@@ -40,4 +40,4 @@ Introduce a dedicated reconcile step outside Keycloak startup:
 ## Implementation
 - Removed the boot-time realm import from the Keycloak deployment.
 - Kept the rendered realm JSON mounted in the pod for live reconciliation.
-- Added `bin/keycloak-reconcile.sh` and `make keycloak-reconcile` to log into the live Keycloak instance and run `partialImport` with `ifResourceExists=OVERWRITE`.
+- Added an Argo CD `PostSync` hook Job in `identity/keycloak/keycloak-reconcile-hook-job.yaml` to log into the live Keycloak instance and run `partialImport` with `ifResourceExists=OVERWRITE`.
