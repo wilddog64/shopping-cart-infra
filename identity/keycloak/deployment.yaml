@@ -49,9 +49,15 @@ spec:
             -h postgres-keycloak.identity.svc.cluster.local \
             -U "${KC_DB_USERNAME}" \
             -d "${KC_DB_URL_DATABASE}" \
-            -tAc "select 1 from realm where name = 'shopping-cart' limit 1;" | grep -q '^1$'; then
-            echo "shopping-cart realm already exists; skipping startup import"
-            printf 'skip\n' > /skip-realm-import/skip
+            -tAc "select to_regclass('public.realm') is not null;" | grep -q '^t$'; then
+            if PGPASSWORD="${KC_DB_PASSWORD}" psql \
+              -h postgres-keycloak.identity.svc.cluster.local \
+              -U "${KC_DB_USERNAME}" \
+              -d "${KC_DB_URL_DATABASE}" \
+              -tAc "select 1 from realm where name = 'shopping-cart' limit 1;" | grep -q '^1$'; then
+              echo "shopping-cart realm already exists; skipping startup import"
+              printf 'skip\n' > /skip-realm-import/skip
+            fi
           fi
         envFrom:
         - configMapRef:
