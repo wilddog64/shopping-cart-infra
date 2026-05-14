@@ -26,7 +26,7 @@ That path is not stable for the live directory data that exists in the bootstrap
 ## Fix
 
 - Change `LDAP_USERNAME_ATTRIBUTE` in `identity/keycloak/configmap.yaml` to `uid`.
-- Change `usernameLDAPAttribute` in `identity/config/realm-shopping-cart.json` to `uid`.
+- Change `usernameLDAPAttribute` in `identity/keycloak/realm-shopping-cart.json` to `uid`.
 
 ## Follow-up
 

@@ -1,7 +1,7 @@
 # Progress: shopping-cart-infra
 
 ## Status
-- **v0.4.0 IN PROGRESS** (2026-05-11) — Observability & Cross-Cluster validation.
+- **v0.4.0 IN PROGRESS** (2026-05-13) — Observability & Cross-Cluster validation.
 - **v0.3.0 SHIPPED** (2026-05-10) — Identity SSO & Vault-ESO migration.
 - **v0.2.0 SHIPPED** — Data Layer & Kitchen-Ansible testing.
 
@@ -12,6 +12,8 @@
 - [ ] Grafana Dashboard: Identity Overview
 - [ ] Grafana Dashboard: Database Health
 - [ ] Cross-cluster ESO validation (App cluster)
+- [ ] Keycloak LDAP bind DN recovery after `ldap-admin` experiment — realm import now re-applies the repo source of truth at Keycloak startup so existing realms pick up the canonical realm import in `identity/keycloak/realm-shopping-cart.json`.
+- [x] Keycloak realm import no longer depends on templated LDAP bind DN — the canonical DN is now literal in the realm template and the initContainer only renders the bind credential from Secret data. `KC_DB_USERNAME` is generated with `keycloak-config`, and the import runs with `--db=postgres --override=true`. Issue docs: `docs/issues/2026-05-13-keycloak-realm-import-invalid-dn-literal-binddn.md` and `docs/issues/2026-05-13-kustomize-cross-directory-realm-file-disallowed.md`.
 
 ## Milestone: v0.3.0 (Identity & Hardening) — ARCHIVED
 - [x] Keycloak + LDAP deployment manifests

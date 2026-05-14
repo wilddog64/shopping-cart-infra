@@ -25,5 +25,8 @@ Update Keycloak's LDAP bind DN to the live admin account name:
 
 Keep the realm export aligned with the same value so future imports do not drift.
 
+## Superseded
+This diagnosis was superseded by the later realm startup import flow that re-applies the JSON source of truth on Keycloak pod start. The current branch restores the canonical OpenLDAP root DN `admin`, so the live realm should be refreshed from `identity/keycloak/realm-shopping-cart.json` instead of relying on a one-off live drift.
+
 ## Follow-up
 After this change is merged, reapply the identity stack and retry the Argo CD SSO login.
