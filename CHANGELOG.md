@@ -2,7 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+- `networking/istio/frontend-virtualservice.yaml` — new VirtualService routing `frontend.shopping-cart.local` to `frontend.shopping-cart-apps.svc.cluster.local:80`
+- `networking/istio/gateway.yaml` — add `frontend.shopping-cart.local` to Istio gateway hosts
+- `.github/workflows/build-push-deploy.yml` — add optional `build-args` input, wired to both "Build image" and "Push image" steps
+
 ### Fixed
+- `identity/keycloak/realm-shopping-cart.json` — add `http://frontend.shopping-cart.local/*` to frontend client `redirectUris` so HTTP (non-TLS) redirects work in local dev
 - Apply `argocd/projects/shopping-cart.yaml` to cluster — the `shopping-cart` AppProject was defined in the repo but never applied, causing `shopping-cart-networking` to stay `Unknown`; `networking.yaml` already correctly references `project: shopping-cart`
 - Add `networking/istio/keycloak-destinationrule.yaml` — disable mTLS for `keycloak.identity.svc.cluster.local` so ArgoCD (Istio-injected, `cicd` ns) can reach Keycloak (no sidecar, `identity` ns) for OIDC token exchange
 
