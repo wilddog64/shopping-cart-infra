@@ -1,0 +1,122 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-realm-reconcile
+  namespace: identity
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+  labels:
+    app.kubernetes.io/name: keycloak-realm-reconcile
+    app.kubernetes.io/component: identity-provider
+    app.kubernetes.io/part-of: shopping-cart
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: keycloak-realm-reconcile
+        app.kubernetes.io/component: identity-provider
+        app.kubernetes.io/part-of: shopping-cart
+    spec:
+      restartPolicy: Never
+      volumes:
+      - name: keycloak-realm-import
+        configMap:
+          name: keycloak-realm-import
+      containers:
+      - name: reconcile
+        image: quay.io/keycloak/keycloak:24.0
+        command:
+        - /bin/bash
+        - -euo
+        - pipefail
+        - -c
+        - |
+          escape_sed() {
+            printf '%s' "$1" | sed -e 's/[\/&]/\\&/g'
+          }
+
+          render_realm() {
+            local input_file="/realm/realm-shopping-cart.json"
+            local output_file="/tmp/realm-shopping-cart.rendered.json"
+            local argocd_client_secret order_service_client_secret product_catalog_client_secret grafana_client_secret ldap_bind_credential
+
+            argocd_client_secret="$(escape_sed "${ARGOCD_CLIENT_SECRET}")"
+            order_service_client_secret="$(escape_sed "${ORDER_SERVICE_CLIENT_SECRET}")"
+            product_catalog_client_secret="$(escape_sed "${PRODUCT_CATALOG_CLIENT_SECRET}")"
+            grafana_client_secret="$(escape_sed "${GRAFANA_CLIENT_SECRET}")"
+            ldap_bind_credential="$(escape_sed "${LDAP_BIND_CREDENTIAL}")"
+
+            sed \
+              -e "s/\${ARGOCD_CLIENT_SECRET}/${argocd_client_secret}/g" \
+              -e "s/\${ORDER_SERVICE_CLIENT_SECRET}/${order_service_client_secret}/g" \
+              -e "s/\${PRODUCT_CATALOG_CLIENT_SECRET}/${product_catalog_client_secret}/g" \
+              -e "s/\${GRAFANA_CLIENT_SECRET}/${grafana_client_secret}/g" \
+              -e "s/\${LDAP_BIND_CREDENTIAL}/${ldap_bind_credential}/g" \
+              "${input_file}" > "${output_file}"
+          }
+
+          deadline_seconds="${KEYCLOAK_RECONCILE_TIMEOUT_SECONDS:-900}"
+          deadline_epoch="$(($(date +%s) + deadline_seconds))"
+
+          until bash -lc '</dev/tcp/keycloak.identity.svc.cluster.local/80' >/dev/null 2>&1; do
+            if [ "$(date +%s)" -ge "${deadline_epoch}" ]; then
+              echo "Timed out waiting for Keycloak service"
+              exit 1
+            fi
+            echo "Waiting for Keycloak service..."
+            sleep 5
+          done
+
+          render_realm
+
+          /opt/keycloak/bin/kcadm.sh config credentials \
+            --server http://keycloak.identity.svc.cluster.local \
+            --realm master \
+            --user "${KEYCLOAK_ADMIN}" \
+            --password "${KEYCLOAK_ADMIN_PASSWORD}" >/dev/null
+
+          if /opt/keycloak/bin/kcadm.sh get "realms/${KC_REALM}" >/dev/null 2>&1; then
+            echo "Realm ${KC_REALM} exists; applying partial import"
+          else
+            echo "Realm ${KC_REALM} missing; creating realm shell"
+            /opt/keycloak/bin/kcadm.sh create realms -s "realm=${KC_REALM}" -s enabled=true >/dev/null
+          fi
+
+          /opt/keycloak/bin/kcadm.sh create partialImport \
+            -r "${KC_REALM}" \
+            -s ifResourceExists=OVERWRITE \
+            -f /tmp/realm-shopping-cart.rendered.json
+        envFrom:
+        - configMapRef:
+            name: keycloak-config
+        - secretRef:
+            name: keycloak-secrets
+        env:
+        - name: ARGOCD_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: argocd-client-secret
+        - name: ORDER_SERVICE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: order-service-client-secret
+        - name: PRODUCT_CATALOG_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: product-catalog-client-secret
+        - name: GRAFANA_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: grafana-client-secret
+        volumeMounts:
+        - name: keycloak-realm-import
+          mountPath: /realm
+          readOnly: true

@@ -220,7 +220,7 @@ This repository integrates with GitHub Actions and Jenkins for automated contain
 - **[GitHub Actions & Jenkins Webhook Setup](docs/github-actions-webhook-setup.md)** - Step-by-step integration instructions
 
 ### Release Notes
-- **[Keycloak realm import idempotency](docs/issues/2026-05-13-keycloak-realm-import-should-skip-existing-shopping-cart-realm.md)** - skips startup import when the `shopping-cart` realm already exists, so repeated Keycloak startups do not fail with duplicate-key conflicts.
+- **[Keycloak live JSON reconcile](docs/issues/2026-05-14-keycloak-live-json-reconcile-without-rebuild.md)** - ships an Argo CD `PostSync` hook Job plus manifest/test updates so realm JSON can be applied live without rebuilding clusters.
 
 ### Automation Scripts
 Located in `bin/`:
