@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 ### Fixed
-- Correct ArgoCD project name in `argocd/applications/networking.yaml` from `shopping-cart` to `platform` — the `shopping-cart` AppProject does not exist; all deployed apps use `platform`
+- Apply `argocd/projects/shopping-cart.yaml` to cluster — the `shopping-cart` AppProject was defined in the repo but never applied, causing `shopping-cart-networking` to stay `Unknown`; `networking.yaml` already correctly references `project: shopping-cart`
 - Add `networking/istio/keycloak-destinationrule.yaml` — disable mTLS for `keycloak.identity.svc.cluster.local` so ArgoCD (Istio-injected, `cicd` ns) can reach Keycloak (no sidecar, `identity` ns) for OIDC token exchange
 
 ### Added
