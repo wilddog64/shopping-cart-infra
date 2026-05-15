@@ -221,7 +221,7 @@ for the OIDC callback to work after the URL change.
 ## Testing
 
 After applying:
-1. `kubectl apply -k networking/istio/` (or ArgoCD sync)
+1. `kubectl apply -f networking/istio/` (or ArgoCD sync)
 2. Confirm both VirtualServices are accepted by Istio:
    ```
    kubectl get virtualservice -A
