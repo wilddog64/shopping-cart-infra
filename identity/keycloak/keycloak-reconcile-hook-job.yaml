@@ -93,28 +93,12 @@ spec:
             -s ifResourceExists=OVERWRITE \
             -f /tmp/realm-shopping-cart.rendered.json
 
-          ldap_components_json="$(
+          ldap_id="$(
             /opt/keycloak/bin/kcadm.sh get components \
               -r "${KC_REALM}" \
               --fields id,name,parentId,providerId \
-              2>/dev/null || true
-          )"
-          ldap_id="$(
-            printf '%s' "${ldap_components_json}" | python3 -c '
-            import json
-            import sys
-
-            try:
-                comps = json.load(sys.stdin)
-            except json.JSONDecodeError:
-                print("")
-                raise SystemExit(0)
-
-            for comp in comps:
-                if comp.get("providerId") == "ldap":
-                    print(comp.get("id", ""))
-                    break
-            '
+              2>/dev/null \
+            | python3 -c 'import json,sys; comps=json.load(sys.stdin); print(next((comp.get("id", "") for comp in comps if comp.get("providerId") == "ldap"), ""))'
           )"
 
           if [ -n "${ldap_id}" ]; then
@@ -126,31 +110,18 @@ spec:
               local model_attribute="$3"
               local always_read="$4"
               local mandatory="$5"
-              local existing mapper_file
+              local current_components_json existing mapper_file
 
+              current_components_json="$(
+                /opt/keycloak/bin/kcadm.sh get components \
+                  -r "${KC_REALM}" \
+                  --fields id,name,parentId,providerId \
+                  2>/dev/null || true
+              )"
               existing="$(
-                printf '%s' "${ldap_components_json}" | python3 -c '
-                import json
-                import sys
-
-                name = sys.argv[1]
-                parent_id = sys.argv[2]
-
-                try:
-                    comps = json.load(sys.stdin)
-                except json.JSONDecodeError:
-                    print("0")
-                    raise SystemExit(0)
-
-                count = sum(
-                    1
-                    for comp in comps
-                    if comp.get("name") == name
-                    and comp.get("parentId") == parent_id
-                    and comp.get("providerId") == "user-attribute-ldap-mapper"
-                )
-                print(count)
-                ' "${name}" "${ldap_id}"
+                printf '%s' "${current_components_json}" \
+                  | python3 -c 'import json,sys; name=sys.argv[1]; parent_id=sys.argv[2]; comps=json.load(sys.stdin); print(sum(1 for comp in comps if comp.get("name") == name and comp.get("parentId") == parent_id and comp.get("providerId") == "user-attribute-ldap-mapper"))' \
+                  "${name}" "${ldap_id}"
               )"
 
               if [ "${existing}" -gt 0 ]; then
