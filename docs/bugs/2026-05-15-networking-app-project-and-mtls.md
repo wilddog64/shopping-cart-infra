@@ -3,7 +3,6 @@
 
 **Branch:** `shopping-cart-infra-v0.5.2`
 **Files:**
-- `argocd/applications/networking.yaml`
 - `networking/istio/keycloak-destinationrule.yaml` (new)
 
 ---
@@ -19,27 +18,28 @@
 
 ---
 
-## Problem A — networking app uses non-existent ArgoCD project
+## Problem A — shopping-cart AppProject never applied to cluster
 
-`argocd/applications/networking.yaml` declares `project: shopping-cart` but that
-AppProject does not exist in the cluster. All other shopping-cart Application resources
-in the cluster use `project: platform`. When applied, the app stays in `Unknown/Unknown`
-state and the Istio Gateway + VirtualServices never sync.
+`argocd/applications/networking.yaml` correctly references `project: shopping-cart`.
+The `shopping-cart` AppProject IS defined in the repo at `argocd/projects/shopping-cart.yaml`,
+but it was never applied to the cluster. When the networking Application was created, ArgoCD
+rejected it (`Unknown/Unknown`) because the project didn't exist in-cluster.
 
-**Root cause:** The manifest was written with a placeholder project name that was never
-created. Every other Application in `argocd/applications/` uses `project: platform`
-(they were applied with the correct project already in the cluster).
+**Root cause:** `argocd/projects/shopping-cart.yaml` is in the repo but not managed by any
+ArgoCD Application (the App of Apps only watches `argocd/applications/`, not `argocd/projects/`).
+The AppProject must be applied manually or via a bootstrap Application.
 
 ### Fix A
 
-In `argocd/applications/networking.yaml`, change:
-```yaml
-  project: shopping-cart
+Apply the existing AppProject definition to the cluster:
+```bash
+kubectl apply -f argocd/projects/shopping-cart.yaml
 ```
-to:
-```yaml
-  project: platform
-```
+
+No change to `argocd/applications/networking.yaml` — `project: shopping-cart` is already correct.
+
+Note: `argocd/projects/shopping-cart.yaml` is not tracked by any ArgoCD Application.
+It must be applied as a cluster bootstrap step (`kubectl apply -f argocd/projects/shopping-cart.yaml`).
 
 ---
 
@@ -64,7 +64,7 @@ Create `networking/istio/keycloak-destinationrule.yaml`:
 
 ```yaml
 ---
-apiVersion: networking.istio.io/v1alpha3
+apiVersion: networking.istio.io/v1beta1
 kind: DestinationRule
 metadata:
   name: keycloak-disable-mtls
@@ -87,11 +87,10 @@ identity namespace, but for now only Keycloak needs this.
 ## Verification (in-cluster state already fixed via kubectl apply)
 
 The following were applied directly to unblock SSO:
-1. `kubectl patch application -n cicd shopping-cart-networking --type=merge -p '{"spec":{"project":"platform"}}'`
+1. `kubectl apply -f argocd/projects/shopping-cart.yaml` — creates the AppProject
 2. `kubectl apply -f` the DestinationRule above
 
-After Codex commits these fixes to git, ArgoCD will self-heal and bring the cluster
-in sync with the repo — no re-apply needed.
+ArgoCD self-healed the networking Application once the project existed in-cluster.
 
 ---
 
@@ -99,8 +98,7 @@ in sync with the repo — no re-apply needed.
 
 | File | Change |
 |------|--------|
-| `argocd/applications/networking.yaml` | `project: shopping-cart` → `project: platform` |
-| `networking/istio/keycloak-destinationrule.yaml` | New file — DestinationRule disabling mTLS |
+| `networking/istio/keycloak-destinationrule.yaml` | New file — DestinationRule disabling mTLS (`v1beta1`) |
 
 ---
 
@@ -108,7 +106,6 @@ in sync with the repo — no re-apply needed.
 
 - Do NOT create a PR — this branch will get its own PR later
 - Do NOT skip pre-commit hooks — use `PRE_COMMIT_ALLOW_NO_CONFIG=1 git commit` instead of `--no-verify`
-- Do NOT modify any file other than the two listed in Files Changed
 - Do NOT commit to `main` — work only on `shopping-cart-infra-v0.5.2`
 - Do NOT run kubectl or touch the cluster — the in-cluster state is already correct; only git needs updating
 
