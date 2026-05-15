@@ -123,6 +123,7 @@
       "secret": "${ARGOCD_CLIENT_SECRET}",
       "redirectUris": [
         "https://argocd.shopping-cart.local/*",
+        "http://argocd.shopping-cart.local/*",
         "http://localhost:8080/*"
       ],
       "webOrigins": [

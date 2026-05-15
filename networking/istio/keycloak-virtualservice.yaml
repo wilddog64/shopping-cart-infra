@@ -1,0 +1,19 @@
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: keycloak
+  namespace: identity
+  labels:
+    app.kubernetes.io/part-of: shopping-cart
+spec:
+  gateways:
+    - istio-system/default-gateway
+  hosts:
+    - keycloak.shopping-cart.local
+  http:
+    - route:
+        - destination:
+            host: keycloak.identity.svc.cluster.local
+            port:
+              number: 80

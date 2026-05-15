@@ -35,6 +35,8 @@ spec:
         - pipefail
         - -c
         - |
+          # shellcheck shell=bash
+          # shellcheck disable=SC2153
           escape_sed() {
             printf '%s' "$1" | sed -e 's/[\/&]/\\&/g'
           }
@@ -90,6 +92,65 @@ spec:
             -r "${KC_REALM}" \
             -s ifResourceExists=OVERWRITE \
             -f /tmp/realm-shopping-cart.rendered.json
+
+          ldap_id="$(
+            /opt/keycloak/bin/kcadm.sh get components \
+              -r "${KC_REALM}" \
+              --fields id,name,parentId,providerId \
+              2>/dev/null \
+            | python3 -c 'import json,sys; comps=json.load(sys.stdin); print(next((comp.get("id", "") for comp in comps if comp.get("providerId") == "ldap"), ""))'
+          )"
+
+          if [ -n "${ldap_id}" ]; then
+            PT="org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
+
+            create_mapper_if_missing() {
+              local name="$1"
+              local ldap_attribute="$2"
+              local model_attribute="$3"
+              local always_read="$4"
+              local mandatory="$5"
+              local current_components_json existing mapper_file
+
+              current_components_json="$(
+                /opt/keycloak/bin/kcadm.sh get components \
+                  -r "${KC_REALM}" \
+                  --fields id,name,parentId,providerId \
+                  2>/dev/null || true
+              )"
+              existing="$(
+                printf '%s' "${current_components_json}" \
+                  | python3 -c 'import json,sys; name=sys.argv[1]; parent_id=sys.argv[2]; comps=json.load(sys.stdin); print(sum(1 for comp in comps if comp.get("name") == name and comp.get("parentId") == parent_id and comp.get("providerId") == "user-attribute-ldap-mapper"))' \
+                  "${name}" "${ldap_id}"
+              )"
+
+              if [ "${existing}" -gt 0 ]; then
+                echo "LDAP mapper already exists: ${name}"
+                return 0
+              fi
+
+              mapper_file="$(mktemp /tmp/keycloak-ldap-mapper-XXXXXX.json)"
+              cat > "${mapper_file}" <<EOF
+          {"parentId":"${ldap_id}","providerType":"${PT}","providerId":"user-attribute-ldap-mapper","name":"${name}","config":{"ldap.attribute":["${ldap_attribute}"],"user.model.attribute":["${model_attribute}"],"read.only":["true"],"always.read.value.from.ldap":["${always_read}"],"is.mandatory.in.ldap":["${mandatory}"]}}
+          EOF
+              /opt/keycloak/bin/kcadm.sh create components -r "${KC_REALM}" -f "${mapper_file}" >/dev/null
+              rm -f "${mapper_file}"
+              echo "Created LDAP mapper: ${name}"
+            }
+
+            create_mapper_if_missing "username" "uid" "username" "false" "true"
+            create_mapper_if_missing "email" "mail" "email" "false" "false"
+            create_mapper_if_missing "first name" "givenName" "firstName" "true" "true"
+            create_mapper_if_missing "last name" "sn" "lastName" "true" "true"
+            create_mapper_if_missing "creation date" "createTimestamp" "createTimestamp" "true" "false"
+            create_mapper_if_missing "modify date" "modifyTimestamp" "modifyTimestamp" "true" "false"
+
+            /opt/keycloak/bin/kcadm.sh create \
+              "user-storage/${ldap_id}/sync?action=triggerFullSync" \
+              -r "${KC_REALM}" >/dev/null
+          else
+            echo "No LDAP component found; skipping mapper setup"
+          fi
         envFrom:
         - configMapRef:
             name: keycloak-config
