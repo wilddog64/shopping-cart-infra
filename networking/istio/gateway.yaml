@@ -17,3 +17,4 @@ spec:
       hosts:
         - keycloak.shopping-cart.local
         - argocd.shopping-cart.local
+        - frontend.shopping-cart.local

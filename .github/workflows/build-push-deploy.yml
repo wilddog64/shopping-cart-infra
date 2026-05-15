@@ -9,6 +9,10 @@ on:
       image-name:
         required: true
         type: string
+      build-args:
+        required: false
+        type: string
+        default: ''
     secrets:
       PACKAGES_TOKEN:
         required: false
@@ -33,6 +37,7 @@ jobs:
           push: false
           load: true
           tags: ${{ inputs.image-name }}:sha-${{ github.sha }}
+          build-args: ${{ inputs.build-args }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           secrets: |
@@ -64,6 +69,7 @@ jobs:
           tags: |
             ${{ inputs.image-name }}:sha-${{ github.sha }}
             ${{ inputs.image-name }}:latest
+          build-args: ${{ inputs.build-args }}
           cache-from: type=gha
           secrets: |
             GH_TOKEN=${{ secrets.PACKAGES_TOKEN }}
