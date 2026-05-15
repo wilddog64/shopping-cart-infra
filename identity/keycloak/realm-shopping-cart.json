@@ -301,7 +301,8 @@
       "redirectUris": [
         "http://localhost:5173/*",
         "http://localhost:3000/*",
-        "https://frontend.shopping-cart.local/*"
+        "https://frontend.shopping-cart.local/*",
+        "http://frontend.shopping-cart.local/*"
       ],
       "webOrigins": [
         "+"
