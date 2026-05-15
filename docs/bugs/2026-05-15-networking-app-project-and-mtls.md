@@ -8,6 +8,17 @@
 
 ---
 
+## Before You Start
+
+1. `git -C <shopping-cart-infra-path> pull origin shopping-cart-infra-v0.5.2`
+2. Read this spec in full before touching any file
+3. Read `argocd/applications/networking.yaml` — confirm line 15 still says `project: shopping-cart`
+4. Confirm `networking/istio/keycloak-destinationrule.yaml` does NOT exist yet
+
+**Branch (work repo):** `shopping-cart-infra-v0.5.2`
+
+---
+
 ## Problem A — networking app uses non-existent ArgoCD project
 
 `argocd/applications/networking.yaml` declares `project: shopping-cart` but that
@@ -93,13 +104,21 @@ in sync with the repo — no re-apply needed.
 
 ---
 
+## What NOT to Do
+
+- Do NOT create a PR — this branch will get its own PR later
+- Do NOT skip pre-commit hooks — use `PRE_COMMIT_ALLOW_NO_CONFIG=1 git commit` instead of `--no-verify`
+- Do NOT modify any file other than the two listed in Files Changed
+- Do NOT commit to `main` — work only on `shopping-cart-infra-v0.5.2`
+- Do NOT run kubectl or touch the cluster — the in-cluster state is already correct; only git needs updating
+
+---
+
 ## Rules
 
-- No other files touched
 - Commit on `shopping-cart-infra-v0.5.2`
 - Use `PRE_COMMIT_ALLOW_NO_CONFIG=1 git commit`
 - Push to `origin/shopping-cart-infra-v0.5.2`
-- Do NOT create a PR — this branch will get its own PR later
 
 **Commit message (exact):**
 ```
