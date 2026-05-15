@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+- Correct ArgoCD project name in `argocd/applications/networking.yaml` from `shopping-cart` to `platform` — the `shopping-cart` AppProject does not exist; all deployed apps use `platform`
+- Add `networking/istio/keycloak-destinationrule.yaml` — disable mTLS for `keycloak.identity.svc.cluster.local` so ArgoCD (Istio-injected, `cicd` ns) can reach Keycloak (no sidecar, `identity` ns) for OIDC token exchange
+
 ### Added
 - `argocd/applications/data-layer.yaml` — ArgoCD Application for data-layer (PostgreSQL, RabbitMQ, Redis); previously required manual `kubectl apply`
 - `data-layer/secrets/redis-cart-apps-externalsecret.yaml` — sync redis-cart password into `shopping-cart-apps/redis-cart-secret` for basket-service
