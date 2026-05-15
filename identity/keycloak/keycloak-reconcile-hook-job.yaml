@@ -121,7 +121,7 @@ spec:
                   -q name="${name}" \
                   --fields id \
                   2>/dev/null \
-                | grep -c '"id"' || echo 0
+                | grep -c '"id"' || true
               )"
 
               if [ "${existing}" -gt 0 ]; then
