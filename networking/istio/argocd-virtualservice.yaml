@@ -1,0 +1,19 @@
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: argocd
+  namespace: cicd
+  labels:
+    app.kubernetes.io/part-of: shopping-cart
+spec:
+  gateways:
+    - istio-system/default-gateway
+  hosts:
+    - argocd.shopping-cart.local
+  http:
+    - route:
+        - destination:
+            host: argocd-server.cicd.svc.cluster.local
+            port:
+              number: 80
