@@ -12,7 +12,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: shopping-cart
+  project: platform
 
   source:
     repoURL: https://github.com/wilddog64/shopping-cart-infra.git
