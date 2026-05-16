@@ -8,6 +8,7 @@
 - `.github/workflows/build-push-deploy.yml` — add optional `build-args` input, wired to both "Build image" and "Push image" steps
 
 ### Fixed
+- `argocd/config/argocd-cm.yaml`: change `url` field from `http://argocd.shopping-cart.local` to `https://argocd.shopping-cart.local` so OIDC callback after Keycloak auth lands on ArgoCD (port 443 socat HTTPS wrapper) instead of Keycloak (port 80 port-forward)
 - `identity/keycloak/realm-shopping-cart.json` — add `http://frontend.shopping-cart.local/*` to frontend client `redirectUris` so HTTP (non-TLS) redirects work in local dev
 - Apply `argocd/projects/shopping-cart.yaml` to cluster — the `shopping-cart` AppProject was defined in the repo but never applied, causing `shopping-cart-networking` to stay `Unknown`; `networking.yaml` already correctly references `project: shopping-cart`
 - Add `networking/istio/keycloak-destinationrule.yaml` — disable mTLS for `keycloak.identity.svc.cluster.local` so ArgoCD (Istio-injected, `cicd` ns) can reach Keycloak (no sidecar, `identity` ns) for OIDC token exchange
