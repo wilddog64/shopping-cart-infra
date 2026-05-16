@@ -10,7 +10,7 @@ metadata:
     app.kubernetes.io/part-of: argocd
 data:
   # Application URL
-  url: http://argocd.shopping-cart.local
+  url: https://argocd.shopping-cart.local
 
   # OIDC Configuration with Keycloak
   oidc.config: |
