@@ -8,6 +8,7 @@
 - `.github/workflows/build-push-deploy.yml` — add optional `build-args` input, wired to both "Build image" and "Push image" steps
 
 ### Fixed
+- `data-layer/postgresql/products/init-db.sql`: removed SERIAL products table DDL that conflicted with SQLAlchemy UUID PK; SQLAlchemy's `create_all()` now owns the products table schema with UUID primary key, eliminating the need for manual table recreation on fresh clusters
 - `argocd/config/argocd-cm.yaml`: change `url` field from `http://argocd.shopping-cart.local` to `https://argocd.shopping-cart.local` so OIDC callback after Keycloak auth lands on ArgoCD (port 443 socat HTTPS wrapper) instead of Keycloak (port 80 port-forward)
 - `identity/keycloak/realm-shopping-cart.json` — add `http://frontend.shopping-cart.local/*` to frontend client `redirectUris` so HTTP (non-TLS) redirects work in local dev
 - Apply `argocd/projects/shopping-cart.yaml` to cluster — the `shopping-cart` AppProject was defined in the repo but never applied, causing `shopping-cart-networking` to stay `Unknown`; `networking.yaml` already correctly references `project: shopping-cart`
