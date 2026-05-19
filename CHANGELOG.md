@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-18
+
 ### Added
 - `networking/istio/frontend-virtualservice.yaml` — new VirtualService routing `frontend.shopping-cart.local` to `frontend.shopping-cart-apps.svc.cluster.local:80`
 - `networking/istio/gateway.yaml` — add `frontend.shopping-cart.local` to Istio gateway hosts
