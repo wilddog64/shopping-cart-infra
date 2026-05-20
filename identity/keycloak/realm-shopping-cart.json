@@ -122,7 +122,7 @@
       "clientAuthenticatorType": "client-secret",
       "secret": "${ARGOCD_CLIENT_SECRET}",
       "redirectUris": [
-        "https://argocd.3ai-talk.org/*",
+        "https://argocd.3ai-talk.org/auth/callback",
         "https://argocd.shopping-cart.local/*",
         "http://argocd.shopping-cart.local/*",
         "http://localhost:8080/*"

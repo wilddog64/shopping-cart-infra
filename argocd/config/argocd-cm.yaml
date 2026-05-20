@@ -10,12 +10,12 @@ metadata:
     app.kubernetes.io/part-of: argocd
 data:
   # Application URL
-  url: https://argocd.shopping-cart.local
+  url: https://argocd.3ai-talk.org
 
   # OIDC Configuration with Keycloak
   oidc.config: |
     name: Keycloak
-    issuer: http://keycloak.shopping-cart.local/realms/shopping-cart
+    issuer: https://keycloak.3ai-talk.org/realms/shopping-cart
     clientID: argocd
     clientSecret: $oidc.keycloak.clientSecret
     requestedScopes:
