@@ -1,114 +1,25 @@
 # Active Context: shopping-cart-infra
 
-## Current Status (2026-05-03)
+## Current Status (2026-05-20)
+**v0.5.0 Milestone: Observability & Cross-Cluster Validation**
+Following the successful shipping of the Keycloak Public URL fix (PR #60 → main at bf32623), focus shifts to observability wiring and hardening cross-cluster secret management.
 
-**payment-service CrashLoopBackOff — DB auth failure MERGED (PR #35, `65c92057`):**
-- Fix: `argocd/applications/payment-service.yaml` — `ignoreDifferences` for `payment-db-credentials` Secret `/data` + `/metadata/ownerReferences`; `RespectIgnoreDifferences=true` added to syncOptions.
-- `enforce_admins` restored on `main` after merge.
-- Next branch: `docs/next-improvements`. Retro: `docs/retro/2026-05-03-pr35-payment-service-db-auth-fix-retrospective.md`.
-- **Pending manual step:** `kubectl delete externalsecret payment-db-credentials-eso -n shopping-cart-payment` — imperative ESO not in any repo file; must be removed after ArgoCD syncs.
+## Recent Changes
+- **PR #60 MERGED:** Keycloak public URL fix—`KC_HOSTNAME_URL` set to `https://keycloak.3ai-talk.org`, ArgoCD `argocd-cm.yaml` URLs and OIDC issuer updated to `https://3ai-talk.org`, realm `redirectUris` updated. Squash-merged to main at commit `bf32623` (2026-05-20).
+- **v0.3.0 SHIPPED:** Identity stack integrated (Keycloak/LDAP/SSO/Vault-ESO).
+- **Identity Regression Fix:** Resolved Keycloak CrashLoopBackOff by removing conflicting \`KC_HOSTNAME\` vs \`KC_HOSTNAME_URL\` (PR #46). Fixed DB auth failure by aligning Postgres internal password with Vault-synced secret.
+- **Branch Created:** shopping-cart-infra-v0.4.0 for the next milestone.
+- **LDAP Bind Recovery:** Investigating a live Keycloak LDAP `Invalid Credentials` failure after the `ldap-admin` bind DN experiment. The conservative repo-side fix restores the canonical OpenLDAP root DN `admin` in both Keycloak and LDAP manifests and now re-imports the realm on Keycloak startup so existing realms pick up the bind identity from the ConfigMap/source JSON.
+- **Copilot Review Follow-up:** Copilot flagged that the Keycloak ConfigMap values were not being applied to already-initialized realms. The current fix keeps `identity/keycloak/realm-shopping-cart.json` as the single startup import source of truth so the live realm refreshes from repo state without a second copy under `identity/config/`.
+- **NEW FINDING:** The Keycloak realm import was still templating the LDAP bind DN, which let a bad render path surface as `javax.naming.InvalidNameException: invalid DN` during Argo CD SSO. The branch now hardcodes the canonical bind DN in the realm template and keeps only the bind credential templated from Secret data. The import path now uses `--db=postgres --override=true` and `KC_DB_USERNAME` is carried in the generated `keycloak-config` ConfigMap. Issue docs: `docs/issues/2026-05-13-keycloak-realm-import-invalid-dn-literal-binddn.md` and `docs/issues/2026-05-13-kustomize-cross-directory-realm-file-disallowed.md`.
+- **COMPLETE:** Live JSON reconcile without rebuild is implemented. The Keycloak deployment no longer boot-imports the realm; the repo now uses an Argo CD `PostSync` hook Job (`identity/keycloak/keycloak-reconcile-hook-job.yaml`) to render the realm JSON and call Keycloak partial import live with `ifResourceExists=OVERWRITE`. The hook now substitutes `LDAP_BIND_CREDENTIAL`, uses a bounded timeout, and the deployment no longer carries an empty `volumes:` key. Issue doc: `docs/issues/2026-05-14-keycloak-live-json-reconcile-without-rebuild.md`.
+- **REVIEW FOLLOW-UP:** Copilot asked for the release-note scope and live-reconcile docs to match the shipped behavior. The README release note now describes the PostSync hook plus manifest/test updates, and the issue doc now clarifies that the mounted realm input is the unrendered JSON at `/realm`.
+- **IN PROGRESS:** `bug/keycloak-ldap-mappers-missing` now carries the Keycloak LDAP mapper reconcile fix plus Istio/ArgoCD networking manifests. Commit `d3d4597` pushed to `origin/bug/keycloak-ldap-mappers-missing`; PR `https://github.com/wilddog64/shopping-cart-infra/pull/55` opened and Copilot reviewer requested.
+- **UPDATED:** Addressed Copilot review findings on `bug/keycloak-ldap-mappers-missing`: removed the unnecessary `networking/istio/kustomization.yaml`, kept ArgoCD in `directory:` mode, dedented the embedded Python in the reconcile hook, and made mapper idempotency fetch fresh component state per mapper. Follow-up commit `aa41928` pushed to PR #55.
+- **COMPLETE:** Removed the dead nested LDAP mapper block from `identity/keycloak/realm-shopping-cart.json` and corrected the ArgoCD routing doc command from `kubectl apply -k` to `kubectl apply -f`. Commit `e9733a1` pushed to `origin/bug/keycloak-ldap-mappers-missing`. Remote branch log: `e9733a1 fix(keycloak): remove dead realm JSON mapper block; fix apply-k doc error`, `463b436 docs(bugs): add spec for dead realm JSON mapper block and apply-k doc error`, `bdabef6 docs: record copilot review follow-up`.
+- **COMPLETE:** Reconcile-hook python3 removal fix — on `shopping-cart-infra-v0.5.1`, replaced both `python3` JSON parsing calls in `identity/keycloak/keycloak-reconcile-hook-job.yaml` with `kcadm.sh` server-side queries, preserved the `grep -c '"id"' || echo 0` fallback exactly as specified, verified shellcheck on the extracted hook script, and pushed commit `a2d4907` to `origin/shopping-cart-infra-v0.5.1`.
 
----
-
-## Current Status (2026-05-02)
-
-**Keycloak OIDC Issuer Mismatch — SSO blocked:** 
-- Issue: ArgoCD expects HTTP, Keycloak returns HTTPS due to `KC_PROXY: edge`. 
-- Status: Bug documented in `docs/issues/2026-05-10-keycloak-oidc-issuer-mismatch.md`. 
-- Action: Need to set `KC_PROXY: none` to align protocols. 
-
-
-**order-service CrashLoopBackOff — schema expansion fix FIXED (`2e8d0bf`):**
-- Issue: Missing 11 columns in `orders` table (timestamps, shipping, tracking).
-- Spec: `docs/bugs/2026-05-02-order-service-schema-expansion-fix.md`. Branch: `bug/order-service-schema-expansion`.
-- Commit: `fix(orders): add 11 missing columns to orders schema (lifecycle, shipping, tracking)`
-
-
-**order-service schema mismatch — FIXED (`5a0914c`):**
-- Issue: missing column `cancellation_reason` in `orders` table.
-- RCA: JPA entity in order-service repo updated, but infra repo init SQL remained stale.
-- Fix: `data-layer/postgresql/orders/configmap.yaml` now includes `cancellation_reason VARCHAR(255)`.
-- Bug doc: `docs/issues/2026-05-02-order-service-missing-column-cancellation-reason.md`.
-
-
-## Current Status (2026-04-05)
-
-**CrashLoopBackOff diagnosis complete — PRs open for all 3 root causes:**
-- wilddog64/shopping-cart-infra#28 (`fix/app-credentials`) — ExternalSecret key mismatch: product-catalog reads `DB_USERNAME`/`DB_PASSWORD` (pydantic alias), not `DATABASE_USER`/`DATABASE_PASSWORD`; payment-service missing `RABBITMQ_USERNAME`/`RABBITMQ_PASSWORD`
-- wilddog64/shopping-cart-payment#17 (`fix/network-policy-labels`) — pod template missing `app.kubernetes.io/version: 1.0.0` label causes `default-deny-all` NetworkPolicy to block DNS → `UnknownHostException`; also adds RabbitMQ env vars
-- wilddog64/shopping-cart-frontend#13 (`fix/frontend-manifest-port-probe`) — nginx EACCES on `/var/cache/nginx/client_temp`; fixed by adding `nginx-cache` emptyDir volume
-
-**Password rotation issue filed:** wilddog64/shopping-cart-infra#29 — hardcoded sandbox passwords in `acg-up` to be replaced with `openssl rand` generated values. Spec: `k3d-manager/docs/plans/v1.0.4-bugfix-acg-up-random-passwords.md`.
-
-**admin override enabled** on shopping-cart-infra for PR #27 merge (RabbitMQ ClusterIP fix). Re-enable after merge: `gh api repos/wilddog64/shopping-cart-infra/branches/main/protection/enforce_admins -X POST -f enabled=true`
-
-## Current Status (2026-04-03)
-
-**BLOCKED — do not investigate until k3d-manager cold-run gate passes.** Gate: `make down` → `make up` from zero completes with ClusterSecretStore Ready + 3 nodes Ready on a fresh sandbox.
-**App pods Degraded/OutOfSync after k3d-manager v1.0.2 `make up`** — 3-node k3s cluster is up, ClusterSecretStore Ready, ESO running. ArgoCD sync shows: basket-service Degraded, frontend Degraded, order-service Degraded, payment-service Degraded, product-catalog OutOfSync/Degraded, data-layer OutOfSync/Missing. Root cause not yet diagnosed — needs investigation when next sandbox is live. Known prior issues: RabbitMQ (order-service), memory limits (payment-service), resource exhaustion (frontend).
-**RabbitMQ Vault credentials fix** — COMPLETE (`d356490`). Branch `fix/app-namespace-secrets` adds `rabbitmq-externalsecret`, wires RabbitMQ StatefulSet to that secret, and updates app-namespace ExternalSecrets to pull RabbitMQ creds from Vault so pods no longer hardcode guest/guest. Spec: `docs/plans/v0.2.1-bugfix-rabbitmq-vault-creds.md`.
-
-## Current Status (2026-03-25)
-
-**PR #22 MERGED** — `7904c8a` 2026-03-25 — RabbitMQ connection fix: `loopback_users.guest = false`, data-layer ArgoCD app with `directory.recurse: true`, resource requests reduced. Copilot 3 findings fixed. `enforce_admins` restored.
-**Active branch:** `docs/next-improvements`
-**Issue shopping-cart-order#16:** CLOSED — fixed in PR #22.
-
-## Current Status (2026-03-14)
-
-Infrastructure stages 1–3 complete. CI stabilization complete across all 5 app repos. P4 linters merged to main on all 4 linted repos.
-
-## What's Implemented
-
-### Data Layer
-- RabbitMQ StatefulSet + Vault dynamic credentials (ESO)
-- PostgreSQL StatefulSets: products + orders
-- Redis StatefulSets: cart + orders-cache
-- Vault database secrets engine (products + orders roles)
-- ExternalSecrets for all components
-
-### Application Layer
-- Helm chart for all 4 application services
-- Argo CD AppProject + Applications (dev + prod)
-- CI/CD pipeline: GitHub Actions → Jenkins → infra repo → Argo CD
-
-### Identity
-- Keycloak + OpenLDAP deployed in `identity` namespace
-- Realm `shopping-cart` configured with `frontend` client
-
-### CI Stabilization (2026-03-14) — ALL MERGED
-| Repo | Status |
-|---|---|
-| `rabbitmq-client-java` | ✅ MERGED |
-| `shopping-cart-order` | ✅ MERGED |
-| `shopping-cart-product-catalog` | ✅ MERGED |
-| `shopping-cart-payment` | ✅ MERGED |
-| `shopping-cart-frontend` | ✅ MERGED |
-
-### P4 Linters (2026-03-14) — ALL MERGED
-| Repo | Linter | Status |
-|---|---|---|
-| `shopping-cart-basket` | golangci-lint | ✅ MERGED |
-| `shopping-cart-product-catalog` | ruff + mypy | ✅ MERGED |
-| `shopping-cart-order` | Checkstyle + OWASP | ✅ MERGED |
-| `shopping-cart-payment` | Checkstyle + SpotBugs | ✅ MERGED |
-
-## Active Task
-
-- **v0.1.0 release branches** — cut on all 6 repos, add CHANGELOGs, tag after merge.
-
-## Known Issues / Docs
-
-- `docs/issues/001-rabbitmq-nodeport.md` — RabbitMQ NodePort access
-- `docs/issues/002-rabbitmq-prometheus-plugin.md` — Prometheus plugin config
-- `docs/issues/003-ci-stabilization-followups.md` — CI follow-ups
-- `docs/issues/2026-03-14-owasp-nvd-api-key.md` — NVD API key needed for order repo
-
-## Pending Work
-
-- [ ] v0.1.0 release branches on all 6 repos
-- [ ] Stage 4: Wire observability (ServiceMonitors, dashboards)
-- [ ] Namespace redesign (function-centric)
-- [ ] Two-cluster split (infra on OrbStack, app on k3s/Parallels)
-- [ ] Auth re-architecture (centralise through Keycloak OIDC)
-- [ ] ESO cross-cluster (app cluster pulling from Vault on infra cluster)
+## Next Steps
+- **Observability Stage 1:** Deploy ServiceMonitors for Keycloak, LDAP, and databases.
+- **Grafana Dashboards:** Port/customize dashboards for core infra components.
+- **Cross-cluster ESO:** Validate application cluster pods retrieving secrets from the Hub cluster's Vault instance.

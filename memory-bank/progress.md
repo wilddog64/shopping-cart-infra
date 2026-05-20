@@ -1,125 +1,33 @@
 # Progress: shopping-cart-infra
 
-## Infrastructure Stages
+## Status
+- **v0.5.0 SHIPPED** (2026-05-20) — Keycloak public URL fix (PR #60 merged).
+- **v0.4.0 IN PROGRESS** (2026-05-13) — Observability & Cross-Cluster validation.
+- **v0.3.0 SHIPPED** (2026-05-10) — Identity SSO & Vault-ESO migration.
+- **v0.2.0 SHIPPED** — Data Layer & Kitchen-Ansible testing.
 
-| Stage | Description | Status |
-|---|---|---|
-| 1 | RabbitMQ StatefulSet deployment | ✅ Complete |
-| 2 | Vault integration for RabbitMQ dynamic credentials | ✅ Complete |
-| 3 | Python client library | ✅ Complete (rabbitmq-client-python repo) |
-| 3 | Go client library | ✅ Complete (rabbitmq-client-go repo) |
-| 3 | Java client library | ✅ Complete (rabbitmq-client-java repo) |
-| 4 | Monitoring & production readiness | ⏳ In Progress (observability-stack repo) |
+## Milestone: v0.5.0 (Keycloak Public URL)
+- [x] Keycloak public URL fix — `KC_HOSTNAME_URL` set to `https://keycloak.3ai-talk.org`, ArgoCD `argocd-cm.yaml` updated with public URLs and correct OIDC issuer, realm `redirectUris` updated. PR #60 squash-merged to main at `bf32623` (2026-05-20).
 
-## Built
+## Milestone: v0.4.0 (Observability)
+- [ ] Prometheus ServiceMonitors for Keycloak
+- [ ] Prometheus ServiceMonitors for OpenLDAP
+- [ ] Prometheus ServiceMonitors for Data Layer (Postgres, Redis, RabbitMQ)
+- [ ] Grafana Dashboard: Identity Overview
+- [ ] Grafana Dashboard: Database Health
+- [ ] Cross-cluster ESO validation (App cluster)
+- [x] Keycloak LDAP mapper reconcile and networking routing fix — added idempotent mapper creation to `identity/keycloak/keycloak-reconcile-hook-job.yaml`, mirrored the 6 LDAP mapper definitions into `identity/keycloak/realm-shopping-cart.json`, switched ArgoCD to `http://argocd.shopping-cart.local`, and added the Istio Gateway/VirtualServices plus the `shopping-cart-networking` ArgoCD Application. Commit `d3d4597`; PR `https://github.com/wilddog64/shopping-cart-infra/pull/55`.
+- [x] Copilot review follow-up for LDAP mapper reconcile and networking routing fix — removed `networking/istio/kustomization.yaml`, kept ArgoCD in `directory:` mode, dedented the reconcile-hook Python calls so they parse, and refreshed mapper idempotency checks per loop. Follow-up commit `aa41928` on PR `https://github.com/wilddog64/shopping-cart-infra/pull/55`.
+- [x] Dead realm JSON mapper block removed — deleted the nested LDAP `components` block from `identity/keycloak/realm-shopping-cart.json`, corrected the ArgoCD routing doc command from `kubectl apply -k` to `kubectl apply -f`, and verified `python3 -m json.tool identity/keycloak/realm-shopping-cart.json > /dev/null`. Commit `e9733a1`; remote log: `e9733a1 fix(keycloak): remove dead realm JSON mapper block; fix apply-k doc error`.
+- [x] Reconcile-hook python3 removal fix — on `shopping-cart-infra-v0.5.1`, replaced both `python3` JSON parsing calls in `identity/keycloak/keycloak-reconcile-hook-job.yaml` with `kcadm.sh` server-side queries, kept the `grep -c '"id"' || echo 0` fallback, verified shellcheck on the extracted hook script, and pushed commit `a2d4907` to `origin/shopping-cart-infra-v0.5.1`.
+- [ ] Keycloak LDAP bind DN recovery after `ldap-admin` experiment — realm import now re-applies the repo source of truth at Keycloak startup so existing realms pick up the canonical realm import in `identity/keycloak/realm-shopping-cart.json`.
+- [x] Keycloak realm import no longer depends on templated LDAP bind DN — the canonical DN is now literal in the realm template and the initContainer only renders the bind credential from Secret data. `KC_DB_USERNAME` is generated with `keycloak-config`, and the import runs with `--db=postgres --override=true`. Issue docs: `docs/issues/2026-05-13-keycloak-realm-import-invalid-dn-literal-binddn.md` and `docs/issues/2026-05-13-kustomize-cross-directory-realm-file-disallowed.md`.
+- [x] Keycloak realm import should skip an existing `shopping-cart` realm — superseded by live reconcile; the startup import path has been removed and realm changes now flow through the Argo CD `PostSync` hook Job instead of `kc.sh import` on boot. Issue doc: `docs/issues/2026-05-13-keycloak-realm-import-should-skip-existing-shopping-cart-realm.md`.
+- [x] Live JSON reconcile without rebuild — implemented via an Argo CD `PostSync` hook Job in `identity/keycloak/keycloak-reconcile-hook-job.yaml`; the Keycloak deployment no longer boot-imports the realm. The hook renders the unescaped realm JSON from `/realm`, substitutes the client secrets and `LDAP_BIND_CREDENTIAL`, and uses a bounded timeout so syncs fail visibly instead of hanging. Issue doc: `docs/issues/2026-05-14-keycloak-live-json-reconcile-without-rebuild.md`.
 
-### Data Layer
-- [x] Namespace definitions (`shopping-cart-data`, `shopping-cart-apps`)
-- [x] PostgreSQL StatefulSet: products (with init SQL schema)
-- [x] PostgreSQL StatefulSet: orders (with init SQL schema)
-- [x] order-service schema: add cancellation_reason column to orders table (`5a0914c`)
-- [x] order-service schema expansion: add 11 missing columns to orders table (`2e8d0bf`)
-- [x] payment-service DB auth failure: stop ArgoCD self-heal from overwriting ESO-managed `payment-db-credentials` (`a184bf7`)
-
-- [x] Redis StatefulSet: cart session storage
-- [x] Redis StatefulSet: orders-cache
-- [x] RabbitMQ StatefulSet with management UI + Prometheus plugin
-- [x] ExternalSecrets for all components (Vault → K8s Secrets)
-- [x] RabbitMQ default credentials sourced from Vault (`d356490` — branch `fix/app-namespace-secrets`, spec `docs/plans/v0.2.1-bugfix-rabbitmq-vault-creds.md`)
-- [x] ArgoCD sync waves + ESO health check + ddl-auto=create (`3b8b13b` — branch `fix/argocd-sync-waves-ddl-auto`, spec `docs/plans/v0.2.2-fix-argocd-sync-waves-ddl-auto.md`) — PR merged `e95b31a` 2026-04-05
-- [x] `rabbitmq-management` Service LoadBalancer → ClusterIP (`dfc949d` — PR #27 merged 2026-04-05) — fixes ArgoCD wave 1 block on k3s
-- [x] Vault database secrets engine configuration script
-
-### Application Services (Helm Chart)
-- [x] Helm chart structure (`chart/`)
-- [x] product-catalog templates (Python/FastAPI)
-- [x] cart/basket templates (Go/Gin)
-- [x] order templates (Java/Spring Boot)
-- [x] frontend templates (React/nginx)
-- [x] Demo values (`values.yaml`, 8GB constraints)
-- [x] Production values (`values-prod.yaml`)
-- [x] Dev values (`values-dev.yaml`, updated by CI)
-
-### Argo CD GitOps
-- [x] AppProject (`shopping-cart`)
-- [x] Application: shopping-cart-infrastructure (data layer)
-- [x] Application: shopping-cart-dev (app layer, auto-sync)
-- [x] Application: shopping-cart-prod (app layer, manual sync)
-
-### Identity Stack
-- [x] Keycloak deployment in `identity` namespace
-- [x] OpenLDAP deployment
-- [x] Realm `shopping-cart` with `frontend` client
-
-### CI/CD
-- [x] `bin/build-and-push.sh` — Build/push images to GHCR
-- [x] `bin/setup-service-repo.sh` — Automate new service repo creation
-- [x] `bin/deploy-infra.sh` — Deploy full infrastructure stack
-- [x] `examples/dockerfiles/` — Dockerfile templates for all service types
-- [x] `examples/github-actions/` — GitHub Actions workflow templates
-
-### Documentation
-- [x] `docs/cicd-architecture.md`
-- [x] `docs/container-image-workflow.md`
-- [x] `docs/github-actions-webhook-setup.md`
-- [x] `docs/message-schemas.md`
-- [x] `docs/rabbitmq-client-library-design.md`
-- [x] `docs/rabbitmq-operations.md`
-- [x] `docs/rabbitmq-load-testing.md`
-- [x] `docs/vault-usage-guide.md`
-- [x] `docs/vault-password-rotation.md`
-- [x] `docs/redis-password-rotation.md`
-- [x] `docs/plans/message-queue-implementation.md`
-- [x] Issue docs: 001 (RabbitMQ NodePort), 002 (Prometheus plugin)
-
-### CI Stabilization (fix/ci-stabilization branch)
-- [x] `shopping-cart-frontend`: TypeScript cleanup + `tsconfig` types (`5b69bd0`)
-- [x] `shopping-cart-product-catalog`: Dockerfile apt upgrades (`c745bd3`)
-- [x] `shopping-cart-payment`: GitHub Actions `./mvnw … -Dmaven.multiModuleProjectDirectory=.` (`7642f06` — local Maven wrapper download timed out)
-- [x] `rabbitmq-client-java`: GitHub Packages publish workflow + distributionManagement (`0f1c9b1`)
-- [x] `shopping-cart-order`: GitHub Packages repository + Maven settings/workflow update (`75c07bb` — local Maven unavailable)
-
-## Pending
-
-### Multi-arch CI fix (Codex ready)
-
-- [x] `shopping-cart-basket` — `@999f8d7` on main (Codex, 2026-03-18)
-- [ ] Update `@8363caf` → `@999f8d7` in remaining 4 app repo CI workflows — spec: `docs/plans/codex-multiarch-workflow-pin.md`
-- [ ] PRs open on all 4 remaining repos (`fix/multiarch-workflow-pin`) — CI green before merge
-- [ ] Claude merges PRs after CI green
-- [ ] CI re-runs on main — pushes `linux/amd64,linux/arm64` images to ghcr.io
-- [ ] Gemini re-verifies ArgoCD all 5 apps Synced + pods Running on k3s
-
-### shopping-cart-basket resilience (Codex ready)
-
-- [ ] Redis circuit breaker — `sony/gobreaker` wrapping all 4 repo ops; 503 on open state; `/health/live` reflects circuit state
-- Issue spec: `shopping-cart-basket/docs/issues/2026-03-18-redis-circuit-breaker.md`
-
-### v0.9.5 — Service Mesh (next milestone after v0.9.4)
-
-- [ ] `istio/peer-authentication.yaml` — STRICT mTLS mesh-wide
-- [ ] `istio/authz-payment.yaml` — deny-all + allow order-service → payment (replaces NetworkPolicy at L7)
-- [ ] `istio/gateway.yaml` — Gateway + VirtualService for frontend ingress + API routing
-- [ ] `istio/destination-rules.yaml` — LEAST_CONN (order, payment), ROUND_ROBIN (basket, catalog, frontend)
-- [ ] `istio/service-entries.yaml` — Stripe + PayPal registered as MESH_EXTERNAL
-- [ ] `docs/service-mesh.md` — **operational doc** (what's deployed, how to verify mTLS, how to add a new service, troubleshooting)
-- Full spec: `k3d-manager/docs/plans/v0.9.5-service-mesh.md`
-
-### Other
-
-- [ ] Stage 4: Observability integration (being done in `observability-stack` repo)
-- [ ] Network policies for strict namespace isolation
-- [ ] Production promotion runbook
-- [ ] RabbitMQ cluster (multi-node) configuration for HA
-- [ ] PostgreSQL HA (read replicas)
-- [ ] Backup/restore procedures for PostgreSQL and Redis
-
-## Known Issues
-
-| ID | Description | Status |
-|---|---|---|
-| 001 | RabbitMQ NodePort accessibility in k3d | Documented |
-| 002 | RabbitMQ Prometheus plugin configuration | Documented |
-| 003 | order-service missing column cancellation_reason | Fixed |
-| 004 | order-service schema expansion | Fixed |
-| 005 | payment-service DB auth failure | Fixed |
+## Milestone: v0.3.0 (Identity & Hardening) — ARCHIVED
+- [x] Keycloak + LDAP deployment manifests
+- [x] Vault ESO integration for Identity
+- [x] OIDC Issuer protocol mismatch resolution
+- [x] LDAP bootstrap writable emptyDir fix
+- [x] ArgoCD identity Application definition
