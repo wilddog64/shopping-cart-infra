@@ -24,6 +24,7 @@
 - `data-layer/secrets/postgres-products-apps-externalsecret.yaml` — sync postgres/products creds into `shopping-cart-apps/product-catalog-secrets` (all env keys)
 
 ### Fixed
+- Update OIDC issuer URLs from internal cluster domain to external Keycloak domain (`keycloak.3ai-talk.org`) in ArgoCD config and Keycloak kustomization
 - Disabled service link injection (`enableServiceLinks: false`) in LDAP Deployment to prevent Kubernetes-injected `LDAP_PORT` env var from corrupting the slapd listen URL (parse error=5)
 - Remove duplicate `ldap-secrets-externalsecret.yaml` entry from `identity/ldap/kustomization.yaml` — fixes ArgoCD identity Application sync failure and unblocks Keycloak deployment
 - `data-layer/postgresql/orders/configmap.yaml`: add 11 missing columns to `orders` table (lifecycle timestamps: `paid_at`, `shipped_at`, `completed_at`, `cancelled_at`; shipping address: `shipping_street/city/state/postal_code/country`; tracking: `tracking_number`, `carrier`) — resolves `order-service` CrashLoopBackOff caused by JPA schema-validation failure on expanded `Order` entity; applies to freshly initialised PostgreSQL data directories only — existing PVCs need recreation or an `ALTER TABLE` migration
