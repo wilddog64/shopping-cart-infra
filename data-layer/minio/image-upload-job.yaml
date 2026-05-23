@@ -51,6 +51,8 @@ spec:
           env:
             - name: MC_BIN
               value: /shared/mc
+            - name: MC_CONFIG_DIR
+              value: /tmp/.mc
             - name: MINIO_ENDPOINT
               value: http://minio.shopping-cart-data.svc.cluster.local:9000
             - name: MINIO_BUCKET
