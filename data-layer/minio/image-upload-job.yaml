@@ -11,6 +11,7 @@ metadata:
   annotations:
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    argocd.argoproj.io/hook-weight: "1"
 spec:
   ttlSecondsAfterFinished: 300
   backoffLimit: 3
@@ -23,17 +24,13 @@ spec:
     spec:
       restartPolicy: OnFailure
       initContainers:
-        - name: install-mc
-          image: alpine:3.19
+        - name: copy-mc
+          image: quay.io/minio/mc:RELEASE.2024-11-07T00-52-20Z
           imagePullPolicy: IfNotPresent
           command:
             - sh
             - -c
-            - |
-              apk add --no-cache curl ca-certificates
-              curl -sSL https://dl.min.io/client/mc/release/linux-amd64/mc \
-                -o /shared/mc
-              chmod +x /shared/mc
+            - cp /usr/bin/mc /shared/mc
           volumeMounts:
             - name: shared
               mountPath: /shared
