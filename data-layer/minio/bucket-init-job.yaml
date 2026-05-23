@@ -38,6 +38,9 @@ spec:
               mc mb --ignore-existing local/product-images
               mc anonymous set download local/product-images
               echo "Bucket product-images ready."
+          env:
+            - name: MC_CONFIG_DIR
+              value: /tmp/.mc
           envFrom:
             - secretRef:
                 name: minio-credentials
