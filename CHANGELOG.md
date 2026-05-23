@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+- MinIO StatefulSet with 10Gi PVC in `shopping-cart-data` namespace as S3-compatible in-cluster object store
+- PostSync bucket-init Job (creates `product-images` bucket with anonymous read) and image-upload Job (generates 20 category images)
+- ESO ExternalSecret for MinIO credentials from Vault `secret/data/minio/credentials`
+- MinIO console accessible via NodePort 30900/30901; S3 API on ClusterIP
+- Architecture documentation: `docs/minio-image-pipeline.md`
+
 ## [0.5.0] - 2026-05-18
 
 ### Added
