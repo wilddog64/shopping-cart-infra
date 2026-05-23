@@ -9,6 +9,9 @@
 - MinIO console accessible via NodePort 30900/30901; S3 API on ClusterIP
 - Architecture documentation: `docs/minio-image-pipeline.md`
 
+### Fixed
+- Correct `minio/mc` image tag to `RELEASE.2024-11-05T11-29-45Z` — the `2024-11-07` tag does not exist on quay.io, causing `minio-bucket-init` and `minio-image-upload` jobs to fail with ErrImagePull
+
 ## [0.5.0] - 2026-05-18
 
 ### Added
