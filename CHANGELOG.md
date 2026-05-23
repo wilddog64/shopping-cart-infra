@@ -11,6 +11,7 @@
 
 ### Fixed
 - Correct `minio/mc` image tag to `RELEASE.2024-11-05T11-29-45Z` — the `2024-11-07` tag does not exist on quay.io, causing `minio-bucket-init` and `minio-image-upload` jobs to fail with ErrImagePull
+- Set `MC_CONFIG_DIR=/tmp/.mc` in `minio-bucket-init` and `minio-image-upload` jobs — `minio/mc` image runs as non-root (UID 1000) and cannot write to `/root/.mc`, causing the bucket-init loop to never exit
 
 ## [0.5.0] - 2026-05-18
 
