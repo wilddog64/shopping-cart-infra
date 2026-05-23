@@ -140,7 +140,7 @@ wave 0: ESO ExternalSecret → creates minio-credentials Secret (from Vault)
 wave 1: MinIO StatefulSet starts, PVC provisioned
 wave 2: (not used)
 PostSync: bucket-init-job → creates product-images bucket (anonymous read)
-PostSync: image-upload-job → downloads 20 Picsum images, uploads to MinIO
+PostSync: image-upload-job → generates 20 images in-cluster with Pillow, uploads to MinIO
 PostSync: product-catalog-seed → inserts 1,000 products with image_url
 ```
 
