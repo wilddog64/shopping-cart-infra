@@ -63,13 +63,15 @@ Actual: `mkdir /root/.mc: permission denied` loops until backoffLimit.
 | File | Change |
 |------|--------|
 | `data-layer/minio/bucket-init-job.yaml` | Add `MC_CONFIG_DIR=/tmp/.mc` env var so mc writes config to writable path |
+| `data-layer/minio/image-upload-job.yaml` | Same fix — uploader container also calls mc via `MC_BIN` subprocess |
+| `CHANGELOG.md` | Add fixed entry under `[Unreleased]` |
 
 ---
 
 ## Rules
 
-- Code change limited to `data-layer/minio/bucket-init-job.yaml`
-- No other files touched (CHANGELOG update may also be required)
+- Code changes limited to `data-layer/minio/bucket-init-job.yaml` and `data-layer/minio/image-upload-job.yaml`
+- CHANGELOG update required
 
 ---
 
@@ -90,7 +92,6 @@ fix(data-layer): set MC_CONFIG_DIR=/tmp/.mc so mc can write config as non-root u
 
 ## What NOT to Do
 
-- Do NOT create a PR
 - Do NOT skip pre-commit hooks (`--no-verify`)
 - Do NOT modify any file other than the listed targets
 - Do NOT commit to `main` — work on `fix/minio-mc-config-dir`
