@@ -1,0 +1,141 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minio-image-upload-script
+  namespace: shopping-cart-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: image-upload
+    app.kubernetes.io/part-of: shopping-cart
+data:
+  generate-and-upload.py: |
+    #!/usr/bin/env python3
+    """Generate product placeholder images and upload to MinIO.
+
+    Images are generated in-cluster using Pillow — no external downloads,
+    no IP or ToS exposure.
+    """
+    import os
+    import subprocess
+    import sys
+    import tempfile
+    from pathlib import Path
+
+    from PIL import Image, ImageDraw, ImageFont
+
+    IMAGES = [
+        # (slug, label, bg_color)
+        ("laptop",     "Laptop",           "#1a73e8"),
+        ("phone",      "Smartphone",       "#1a73e8"),
+        ("headphones", "Headphones",       "#1a73e8"),
+        ("tablet",     "Tablet",           "#1a73e8"),
+        ("speaker",    "Speaker",          "#1a73e8"),
+        ("keyboard",   "Keyboard",         "#188038"),
+        ("mouse",      "Mouse",            "#188038"),
+        ("webcam",     "Webcam",           "#188038"),
+        ("hub",        "USB Hub",          "#188038"),
+        ("monitor-24", "Monitor 24\"",     "#9334e6"),
+        ("monitor-27", "Monitor 27\"",     "#9334e6"),
+        ("ultrawide",  "Ultrawide",        "#9334e6"),
+        ("curved",     "Curved Monitor",   "#9334e6"),
+        ("deskpad",    "Desk Mat",         "#e37400"),
+        ("stand",      "Monitor Stand",    "#e37400"),
+        ("bag",        "Laptop Bag",       "#e37400"),
+        ("charger",    "GaN Charger",      "#e37400"),
+        ("cable",      "USB-C Cable",      "#e37400"),
+        ("light",      "Key Light",        "#e37400"),
+        ("hub-desk",   "Desktop Hub",      "#e37400"),
+    ]
+
+    MC = os.environ["MC_BIN"]
+    ENDPOINT = os.environ["MINIO_ENDPOINT"]
+    BUCKET = os.environ["MINIO_BUCKET"]
+    ROOT_USER = os.environ["MINIO_ROOT_USER"]
+    ROOT_PASSWORD = os.environ["MINIO_ROOT_PASSWORD"]
+    ALIAS = "local"
+    WIDTH, HEIGHT = 800, 600
+
+
+    def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
+        h = hex_color.lstrip("#")
+        return tuple(int(h[i : i + 2], 16) for i in (0, 2, 4))
+
+
+    def generate_image(slug: str, label: str, bg_color: str) -> Path:
+        img = Image.new("RGB", (WIDTH, HEIGHT), hex_to_rgb(bg_color))
+        draw = ImageDraw.Draw(img)
+
+        # Lighter inner rectangle for visual depth
+        inner_color = tuple(min(255, c + 40) for c in hex_to_rgb(bg_color))
+        margin = 40
+        draw.rectangle(
+            [margin, margin, WIDTH - margin, HEIGHT - margin],
+            fill=inner_color,
+        )
+
+        # Centered label — use default font (always available in alpine)
+        font = ImageFont.load_default(size=48)
+        bbox = draw.textbbox((0, 0), label, font=font)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
+        x = (WIDTH - text_w) // 2
+        y = (HEIGHT - text_h) // 2
+        draw.text((x, y), label, fill="white", font=font)
+
+        # Subtle bottom tag
+        tag_font = ImageFont.load_default(size=24)
+        draw.text((margin + 10, HEIGHT - margin - 30), slug, fill="white", font=tag_font)
+
+        path = Path(tempfile.gettempdir()) / f"{slug}.jpg"
+        img.save(str(path), "JPEG", quality=85)
+        return path
+
+
+    def mc(*args: str) -> None:
+        result = subprocess.run([MC, *args], capture_output=True, text=True)
+        if result.returncode != 0:
+            print(result.stderr, file=sys.stderr)
+            raise RuntimeError(f"mc {' '.join(args)} failed")
+        print(result.stdout.strip())
+
+
+    def wait_for_minio() -> None:
+        import time
+        for attempt in range(30):
+            result = subprocess.run(
+                [MC, "alias", "set", ALIAS, ENDPOINT, ROOT_USER, ROOT_PASSWORD],
+                capture_output=True,
+            )
+            if result.returncode == 0:
+                return
+            print(f"Waiting for MinIO (attempt {attempt + 1}/30)...")
+            time.sleep(5)
+        raise RuntimeError("MinIO did not become ready in time")
+
+
+    def image_exists(slug: str) -> bool:
+        result = subprocess.run(
+            [MC, "stat", f"{ALIAS}/{BUCKET}/{slug}.jpg"],
+            capture_output=True,
+        )
+        return result.returncode == 0
+
+
+    def main() -> None:
+        wait_for_minio()
+        for slug, label, bg_color in IMAGES:
+            dest = f"{ALIAS}/{BUCKET}/{slug}.jpg"
+            if image_exists(slug):
+                print(f"Already exists: {slug}.jpg — skipping")
+                continue
+            print(f"Generating {slug}...")
+            path = generate_image(slug, label, bg_color)
+            mc("cp", str(path), dest)
+            path.unlink()
+            print(f"Uploaded {slug}.jpg")
+        print("Image upload complete.")
+
+
+    if __name__ == "__main__":
+        main()

@@ -1,0 +1,48 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-bucket-init
+  namespace: shopping-cart-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: bucket-init
+    app.kubernetes.io/part-of: shopping-cart
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: minio
+        app.kubernetes.io/component: bucket-init
+        app.kubernetes.io/part-of: shopping-cart
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mc
+          image: quay.io/minio/mc:RELEASE.2024-11-07T00-52-20Z
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until mc alias set local http://minio.shopping-cart-data.svc.cluster.local:9000 \
+                "${MINIO_ROOT_USER}" "${MINIO_ROOT_PASSWORD}"; do
+                echo "Waiting for MinIO..."; sleep 5
+              done
+              mc mb --ignore-existing local/product-images
+              mc anonymous set download local/product-images
+              echo "Bucket product-images ready."
+          envFrom:
+            - secretRef:
+                name: minio-credentials
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
