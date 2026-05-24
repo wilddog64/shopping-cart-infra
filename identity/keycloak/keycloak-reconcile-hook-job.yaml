@@ -177,6 +177,11 @@ spec:
             secretKeyRef:
               name: keycloak-client-secrets
               key: grafana-client-secret
+        - name: LDAP_BIND_CREDENTIAL
+          valueFrom:
+            secretKeyRef:
+              name: ldap-secrets
+              key: LDAP_ADMIN_PASSWORD
         volumeMounts:
         - name: keycloak-realm-import
           mountPath: /realm
