@@ -390,6 +390,24 @@ make rabbitmq-ui  # RabbitMQ management
 
 ---
 
+### MinIO Product Image Pipeline
+
+**Status**: Implemented (Milestone v1)
+
+In-cluster S3-compatible object store for product images. Eliminates dependency on
+ephemeral ACG sandbox S3 — images survive pod restarts via a 10Gi PVC.
+
+**Documentation**:
+- [MinIO Image Pipeline](docs/minio-image-pipeline.md) - Architecture, components, bootstrap sequence, and image URL format
+
+**Quick reference**:
+- MinIO API: `ClusterIP :9000` (internal) / NodePort `30900` (local access)
+- MinIO console: `http://<node-ip>:30901`
+- Images proxied at: `/minio/product-images/<subcategory-slug>.jpg`
+- Credentials: Vault `secret/data/minio/credentials`
+
+---
+
 ### Vault Integration Enhancements
 
 **Current**: Dynamic PostgreSQL credentials, static Redis passwords

@@ -10,30 +10,26 @@ S3-compatible object store. This eliminates the need for external cloud storage
 (ACG sandbox S3 is ephemeral and dies with the sandbox) while keeping the same
 S3 API available for future migration to real S3.
 
-```
-                 ┌──────────────────────────────────────┐
-                 │  shopping-cart-data namespace         │
-                 │                                      │
-  ArgoCD sync ──▶│  MinIO StatefulSet (port 9000/9001)  │
-                 │  ├── PVC: 10Gi (/data)               │
-                 │  └── bucket: product-images (public) │
-                 │                                      │
-  PostSync Job ──▶│  image-upload-job                   │
-                 │  └── downloads ~20 Picsum images      │
-                 │       uploads to product-images/     │
-                 └──────────────────────────────────────┘
-                          │ ClusterIP :9000
-                          ▼
-                 ┌──────────────────────────────────────┐
-                 │  shopping-cart-apps namespace         │
-                 │                                      │
-                 │  frontend (nginx)                    │
-                 │  └── location /minio/ → MinIO :9000  │◀── browser
-                 │                                      │
-  PostSync Job ──▶│  product-catalog-seed (1000 rows)   │
-                 │  └── image_url = /minio/product-     │
-                 │       images/<subcategory>.jpg        │
-                 └──────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph data["shopping-cart-data namespace"]
+        A[ArgoCD sync] -->|wave 0| ES[ESO ExternalSecret\nminio-credentials]
+        A -->|wave 1| MS[MinIO StatefulSet\nport 9000 / 9001]
+        MS --- PVC[PVC: 10Gi /data]
+        ES --> MS
+
+        PS1[PostSync Job\nbucket-init-job] -->|creates bucket\nanonymous read| MS
+        PS2[PostSync Job\nimage-upload-job] -->|generates 20 images\nvia Pillow, uploads| MS
+        MS --> SVC[ClusterIP Service\n:9000]
+    end
+
+    subgraph apps["shopping-cart-apps namespace"]
+        FE["frontend (nginx)\nlocation /minio/ → MinIO :9000"]
+        PS3[PostSync Job\nproduct-catalog-seed\n1000 rows] -->|image_url =\n/minio/product-images/slug.jpg| PG[(PostgreSQL\nproducts)]
+    end
+
+    SVC -->|cluster-internal| FE
+    Browser([browser]) -->|GET /minio/product-images/...| FE
 ```
 
 ## Why MinIO
