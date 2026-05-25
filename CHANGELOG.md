@@ -10,6 +10,7 @@
 - Architecture documentation: `docs/minio-image-pipeline.md`
 
 ### Fixed
+- Add `LDAP_BIND_CREDENTIAL` env var to Keycloak realm reconcile hook job sourced from `ldap-secrets.LDAP_ADMIN_PASSWORD` — fixes LDAP federation bind failure on every PostSync run
 - Correct `minio/mc` image tag to `RELEASE.2024-11-05T11-29-45Z` — the `2024-11-07` tag does not exist on quay.io, causing `minio-bucket-init` and `minio-image-upload` jobs to fail with ErrImagePull
 - Set `MC_CONFIG_DIR=/tmp/.mc` in `minio-bucket-init` and `minio-image-upload` jobs — `minio/mc` image runs as non-root (UID 1000) and cannot write to `/root/.mc`, causing the bucket-init loop to never exit
 - Remove placeholder `redis-cart-secret` and `redis-orders-cache-secret` Secret manifests from `data-layer/redis/cart/` and `data-layer/redis/orders-cache/` — ESO ExternalSecrets in `data-layer/secrets/` own these secrets and overwrite the placeholder data with real Vault values, causing perpetual ArgoCD `data-layer` OutOfSync. Deleting the placeholders lets ESO fully own the secrets without conflict.
