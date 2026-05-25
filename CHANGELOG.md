@@ -10,6 +10,7 @@
 - Architecture documentation: `docs/minio-image-pipeline.md`
 
 ### Fixed
+- `identity/keycloak/keycloak-reconcile-hook-job.yaml` — wrap `partialImport` in `if !` block so LDAP mapper setup and `triggerFullSync` continue on duplicate-key failure; fixes `user_not_found` on every re-deploy after the first ArgoCD sync
 - Add `LDAP_BIND_CREDENTIAL` env var to Keycloak realm reconcile hook job sourced from `ldap-secrets.LDAP_ADMIN_PASSWORD` — fixes LDAP federation bind failure on every PostSync run
 - Correct `minio/mc` image tag to `RELEASE.2024-11-05T11-29-45Z` — the `2024-11-07` tag does not exist on quay.io, causing `minio-bucket-init` and `minio-image-upload` jobs to fail with ErrImagePull
 - Set `MC_CONFIG_DIR=/tmp/.mc` in `minio-bucket-init` and `minio-image-upload` jobs — `minio/mc` image runs as non-root (UID 1000) and cannot write to `/root/.mc`, causing the bucket-init loop to never exit
