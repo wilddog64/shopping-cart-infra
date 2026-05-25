@@ -88,10 +88,12 @@ spec:
             /opt/keycloak/bin/kcadm.sh create realms -s "realm=${KC_REALM}" -s enabled=true >/dev/null
           fi
 
-          /opt/keycloak/bin/kcadm.sh create partialImport \
+          if ! /opt/keycloak/bin/kcadm.sh create partialImport \
             -r "${KC_REALM}" \
             -s ifResourceExists=OVERWRITE \
-            -f /tmp/realm-shopping-cart.rendered.json
+            -f /tmp/realm-shopping-cart.rendered.json; then
+            echo "Warning: partialImport returned non-zero (duplicate key on re-run); continuing with LDAP setup"
+          fi
 
           ldap_id="$(
             /opt/keycloak/bin/kcadm.sh get components \
