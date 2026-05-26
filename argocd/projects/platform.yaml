@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: shopping-cart
+  name: platform
   namespace: cicd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
