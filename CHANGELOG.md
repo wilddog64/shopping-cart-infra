@@ -10,6 +10,7 @@
 - Architecture documentation: `docs/minio-image-pipeline.md`
 
 ### Fixed
+- Fix ArgoCD RBAC project scope: changed `shopping-cart/*` to `platform/*` for platform-developer, platform-operator, order-admin, and catalog-admin roles — all apps are in the `platform` project, not `shopping-cart`
 - `identity/keycloak/keycloak-reconcile-hook-job.yaml` — capture `partialImport` exit code and log it explicitly; script continues to LDAP mapper setup and `triggerFullSync` regardless, fixing `user_not_found` on every re-deploy after the first ArgoCD sync
 - `identity/keycloak/realm-shopping-cart.json` — restore `pkce.code.challenge.method: S256` on `frontend` client; an earlier commit had unintentionally removed it (PKCE is correct for SPA public clients)
 - Add `LDAP_BIND_CREDENTIAL` env var to Keycloak realm reconcile hook job sourced from `ldap-secrets.LDAP_ADMIN_PASSWORD` — fixes LDAP federation bind failure on every PostSync run
