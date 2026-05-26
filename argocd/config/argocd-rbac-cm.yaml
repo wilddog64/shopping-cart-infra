@@ -46,23 +46,23 @@ data:
     p, role:argocd-viewer, projects, get, *, allow
     g, argocd-viewers, role:argocd-viewer
 
-    # Platform Developers - Access to shopping-cart project only
-    p, role:platform-developer, applications, get, shopping-cart/*, allow
-    p, role:platform-developer, applications, sync, shopping-cart/*, allow
-    p, role:platform-developer, applications, action/*, shopping-cart/*, allow
-    p, role:platform-developer, logs, get, shopping-cart/*, allow
-    p, role:platform-developer, exec, create, shopping-cart/*, allow
+    # Platform Developers - Access to platform project
+    p, role:platform-developer, applications, get, platform/*, allow
+    p, role:platform-developer, applications, sync, platform/*, allow
+    p, role:platform-developer, applications, action/*, platform/*, allow
+    p, role:platform-developer, logs, get, platform/*, allow
+    p, role:platform-developer, exec, create, platform/*, allow
     p, role:platform-developer, repositories, get, *, allow
     p, role:platform-developer, clusters, get, *, allow
-    p, role:platform-developer, projects, get, shopping-cart, allow
+    p, role:platform-developer, projects, get, platform, allow
     g, platform-developers, role:platform-developer
 
-    # Platform Operators - Read-only access to shopping-cart project
-    p, role:platform-operator, applications, get, shopping-cart/*, allow
-    p, role:platform-operator, logs, get, shopping-cart/*, allow
+    # Platform Operators - Read-only access to platform project
+    p, role:platform-operator, applications, get, platform/*, allow
+    p, role:platform-operator, logs, get, platform/*, allow
     p, role:platform-operator, repositories, get, *, allow
     p, role:platform-operator, clusters, get, *, allow
-    p, role:platform-operator, projects, get, shopping-cart, allow
+    p, role:platform-operator, projects, get, platform, allow
     g, platform-operators, role:platform-operator
 
     # ============================================
@@ -70,13 +70,13 @@ data:
     # ============================================
 
     # Order Service Admins - Full access to order-service app
-    p, role:order-admin, applications, *, shopping-cart/order-service, allow
-    p, role:order-admin, logs, get, shopping-cart/order-service, allow
-    p, role:order-admin, exec, create, shopping-cart/order-service, allow
+    p, role:order-admin, applications, *, platform/order-service, allow
+    p, role:order-admin, logs, get, platform/order-service, allow
+    p, role:order-admin, exec, create, platform/order-service, allow
     g, order-admins, role:order-admin
 
     # Product Catalog Admins - Full access to product-catalog app
-    p, role:catalog-admin, applications, *, shopping-cart/product-catalog, allow
-    p, role:catalog-admin, logs, get, shopping-cart/product-catalog, allow
-    p, role:catalog-admin, exec, create, shopping-cart/product-catalog, allow
+    p, role:catalog-admin, applications, *, platform/product-catalog, allow
+    p, role:catalog-admin, logs, get, platform/product-catalog, allow
+    p, role:catalog-admin, exec, create, platform/product-catalog, allow
     g, catalog-admins, role:catalog-admin
