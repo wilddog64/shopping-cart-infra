@@ -238,9 +238,9 @@ spec:
               echo "LDAP group mapper already exists"
             else
               _gm_file="$(mktemp /tmp/keycloak-group-mapper-XXXXXX.json)"
-              cat > "${_gm_file}" <<-GMEOF
-              {"parentId":"${ldap_id}","providerType":"org.keycloak.storage.ldap.mappers.LDAPStorageMapper","providerId":"group-ldap-mapper","name":"group-mapper","config":{"groups.dn":["ou=groups,dc=shopping-cart,dc=local"],"group.name.ldap.attribute":["cn"],"group.object.classes":["groupOfNames"],"preserve.group.inheritance":["true"],"ignore.missing.groups":["false"],"membership.ldap.attribute":["member"],"membership.attribute.type":["DN"],"membership.user.ldap.attribute":["uid"],"mode":["READ_ONLY"],"user.roles.retrieve.strategy":["LOAD_GROUPS_BY_MEMBER_ATTRIBUTE"],"memberof.ldap.attribute":["memberOf"],"drop.non.existing.groups.during.sync":["false"]}}
-              GMEOF
+              cat > "${_gm_file}" <<EOF
+          {"parentId":"${ldap_id}","providerType":"org.keycloak.storage.ldap.mappers.LDAPStorageMapper","providerId":"group-ldap-mapper","name":"group-mapper","config":{"groups.dn":["ou=groups,dc=shopping-cart,dc=local"],"group.name.ldap.attribute":["cn"],"group.object.classes":["groupOfNames"],"preserve.group.inheritance":["true"],"ignore.missing.groups":["false"],"membership.ldap.attribute":["member"],"membership.attribute.type":["DN"],"membership.user.ldap.attribute":["uid"],"mode":["READ_ONLY"],"user.roles.retrieve.strategy":["LOAD_GROUPS_BY_MEMBER_ATTRIBUTE"],"memberof.ldap.attribute":["memberOf"],"drop.non.existing.groups.during.sync":["false"]}}
+          EOF
               /opt/keycloak/bin/kcadm.sh create components -r "${KC_REALM}" -f "${_gm_file}" >/dev/null
               rm -f "${_gm_file}"
               echo "Created LDAP group mapper"
