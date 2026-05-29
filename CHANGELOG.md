@@ -11,6 +11,7 @@
 - Architecture documentation: `docs/minio-image-pipeline.md`
 
 ### Fixed
+- `argocd/applications/`: remove legacy static Application definitions for basket-service, frontend, order-service, payment-service, product-catalog — superseded by services-git ApplicationSet; eliminated SharedResourceWarning and OutOfSync conflicts
 - Add `group-ldap-mapper` to Keycloak LDAP federation reconcile job so LDAP group memberships sync to Keycloak and ArgoCD RBAC works correctly for SSO users
 - `identity/keycloak/keycloak-reconcile-hook-job.yaml` — use `authentication/flows/{alias}/executions` PUT endpoint (not `authentication/executions/{id}`) for sub-flow requirement updates; Keycloak 24.0 returns HTTP 404 for the leaf-execution endpoint when the target is a sub-flow (`authenticationFlow: true`), causing the job to abort mid-way under `set -euo pipefail` and leaving `otp-conditional-subflow` DISABLED and empty — MFA never activates
 - `identity/keycloak/keycloak-reconcile-hook-job.yaml` — capture `partialImport` exit code and log it explicitly; script continues to LDAP mapper setup and `triggerFullSync` regardless, fixing `user_not_found` on every re-deploy after the first ArgoCD sync

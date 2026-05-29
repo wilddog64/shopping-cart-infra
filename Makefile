@@ -224,16 +224,18 @@ argocd-deploy: argocd-project ## Deploy all applications via ArgoCD
 	kubectl apply -f argocd/applications/
 	@echo "${GREEN}✓ ArgoCD applications deployed${RESET}"
 
-argocd-sync: ## Sync all shopping-cart applications
+argocd-sync: ## Sync all shopping-cart applications (ApplicationSet-managed)
 	@echo "${BLUE}Syncing shopping-cart applications...${RESET}"
-	@argocd app sync order-service 2>/dev/null || kubectl patch application order-service -n argocd --type merge -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"syncStrategy":{"apply":{"force":true}}}}}' 2>/dev/null || echo "order-service not found"
-	@argocd app sync product-catalog 2>/dev/null || kubectl patch application product-catalog -n argocd --type merge -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"syncStrategy":{"apply":{"force":true}}}}}' 2>/dev/null || echo "product-catalog not found"
+	@argocd app sync shopping-cart-order 2>/dev/null || echo "shopping-cart-order not found"
+	@argocd app sync shopping-cart-product-catalog 2>/dev/null || echo "shopping-cart-product-catalog not found"
+	@argocd app sync shopping-cart-basket 2>/dev/null || echo "shopping-cart-basket not found"
+	@argocd app sync shopping-cart-frontend 2>/dev/null || echo "shopping-cart-frontend not found"
+	@argocd app sync shopping-cart-payment 2>/dev/null || echo "shopping-cart-payment not found"
 	@echo "${GREEN}✓ Sync triggered${RESET}"
 
-argocd-delete: ## Delete ArgoCD applications (keeps project)
+argocd-delete: ## Delete ArgoCD applications managed by services-git ApplicationSet
 	@echo "${YELLOW}Deleting ArgoCD applications...${RESET}"
-	kubectl delete -f argocd/applications/order-service.yaml --ignore-not-found
-	kubectl delete -f argocd/applications/product-catalog.yaml --ignore-not-found
+	@argocd app delete shopping-cart-order shopping-cart-basket shopping-cart-frontend shopping-cart-payment shopping-cart-product-catalog --yes 2>/dev/null || true
 	@echo "${GREEN}✓ ArgoCD applications deleted${RESET}"
 
 ##@ Identity (Keycloak + LDAP)
