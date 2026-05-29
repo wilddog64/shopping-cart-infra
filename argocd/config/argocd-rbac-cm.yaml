@@ -76,7 +76,7 @@ data:
     g, order-admins, role:order-admin
 
     # Product Catalog Admins - Full access to product-catalog app
-    p, role:catalog-admin, applications, *, shopping-cart/product-catalog, allow
-    p, role:catalog-admin, logs, get, shopping-cart/product-catalog, allow
-    p, role:catalog-admin, exec, create, shopping-cart/product-catalog, allow
+    p, role:catalog-admin, applications, *, shopping-cart/shopping-cart-product-catalog, allow
+    p, role:catalog-admin, logs, get, shopping-cart/shopping-cart-product-catalog, allow
+    p, role:catalog-admin, exec, create, shopping-cart/shopping-cart-product-catalog, allow
     g, catalog-admins, role:catalog-admin

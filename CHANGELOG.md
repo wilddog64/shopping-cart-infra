@@ -40,6 +40,7 @@
 - `data-layer/secrets/postgres-products-apps-externalsecret.yaml` — sync postgres/products creds into `shopping-cart-apps/product-catalog-secrets` (all env keys)
 
 ### Fixed
+- `argocd/config/argocd-rbac-cm.yaml`: updated `catalog-admin` role to reference `shopping-cart/shopping-cart-product-catalog` app name (was `shopping-cart/product-catalog`) — the app name mismatch caused `permission denied` for `catalog-admins` LDAP group members attempting to sync the product catalog
 - Update OIDC issuer URLs from internal cluster domain to external Keycloak domain (`keycloak.3ai-talk.org`) in ArgoCD config and Keycloak kustomization
 - Disabled service link injection (`enableServiceLinks: false`) in LDAP Deployment to prevent Kubernetes-injected `LDAP_PORT` env var from corrupting the slapd listen URL (parse error=5)
 - Remove duplicate `ldap-secrets-externalsecret.yaml` entry from `identity/ldap/kustomization.yaml` — fixes ArgoCD identity Application sync failure and unblocks Keycloak deployment
