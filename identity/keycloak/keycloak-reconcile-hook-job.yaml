@@ -123,8 +123,9 @@ spec:
               echo "ERROR: could not resolve otp-conditional-subflow execution ID" >&2; exit 1
             fi
             /opt/keycloak/bin/kcadm.sh update \
-              "authentication/executions/${_otp_subflow_exec_id}" \
-              -r "${KC_REALM}" -s requirement=CONDITIONAL
+              "authentication/flows/browser-with-conditional-otp/executions" \
+              -r "${KC_REALM}" \
+              -b "{\"id\":\"${_otp_subflow_exec_id}\",\"requirement\":\"CONDITIONAL\",\"authenticationFlow\":true,\"displayName\":\"otp-conditional-subflow\"}"
 
             /opt/keycloak/bin/kcadm.sh create \
               "authentication/flows/otp-conditional-subflow/executions/execution" \
