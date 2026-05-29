@@ -29,12 +29,24 @@
   "roles": {
     "realm": [
       {
+        "name": "platform-mfa",
+        "description": "Marker role: users with this role are required to complete TOTP MFA on browser login"
+      },
+      {
         "name": "platform-admin",
-        "description": "Full administrative access to the shopping cart platform"
+        "description": "Full administrative access to the shopping cart platform",
+        "composite": true,
+        "composites": {
+          "realm": ["platform-mfa"]
+        }
       },
       {
         "name": "platform-developer",
-        "description": "Developer access - can deploy and manage applications"
+        "description": "Developer access - can deploy and manage applications",
+        "composite": true,
+        "composites": {
+          "realm": ["platform-mfa"]
+        }
       },
       {
         "name": "platform-operator",
