@@ -10,6 +10,7 @@
 - Architecture documentation: `docs/minio-image-pipeline.md`
 
 ### Fixed
+- `identity/keycloak/keycloak-reconcile-hook-job.yaml` — use `authentication/flows/{alias}/executions` PUT endpoint (not `authentication/executions/{id}`) for sub-flow requirement updates; Keycloak 24.0 returns HTTP 404 for the leaf-execution endpoint when the target is a sub-flow (`authenticationFlow: true`), causing the job to abort mid-way under `set -euo pipefail` and leaving `otp-conditional-subflow` DISABLED and empty — MFA never activates
 - `identity/keycloak/keycloak-reconcile-hook-job.yaml` — capture `partialImport` exit code and log it explicitly; script continues to LDAP mapper setup and `triggerFullSync` regardless, fixing `user_not_found` on every re-deploy after the first ArgoCD sync
 - `identity/keycloak/realm-shopping-cart.json` — restore `pkce.code.challenge.method: S256` on `frontend` client; an earlier commit had unintentionally removed it (PKCE is correct for SPA public clients)
 - Add `LDAP_BIND_CREDENTIAL` env var to Keycloak realm reconcile hook job sourced from `ldap-secrets.LDAP_ADMIN_PASSWORD` — fixes LDAP federation bind failure on every PostSync run
