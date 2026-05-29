@@ -18,8 +18,6 @@ spec:
     repoURL: https://github.com/wilddog64/shopping-cart-infra.git
     targetRevision: HEAD
     path: networking/istio
-    directory:
-      recurse: false
 
   destination:
     server: https://kubernetes.default.svc
