@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- `.githooks/pre-push`: pre-push hook to block accidental direct pushes from feature branches to main; bypass with `ALLOW_MAIN_PUSH=1`
 - MinIO StatefulSet with 10Gi PVC in `shopping-cart-data` namespace as S3-compatible in-cluster object store
 - PostSync bucket-init Job (creates `product-images` bucket with anonymous read) and image-upload Job (generates 20 category images)
 - ESO ExternalSecret for MinIO credentials from Vault `secret/data/minio/credentials`
