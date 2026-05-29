@@ -1,11 +1,10 @@
 # Active Context: shopping-cart-infra
 
-## Current Status (2026-05-20)
-**v0.5.0 Milestone: Observability & Cross-Cluster Validation**
-Following the successful shipping of the Keycloak Public URL fix (PR #60 → main at bf32623), focus shifts to observability wiring and hardening cross-cluster secret management.
+## Current Status (2026-05-13)
+**v0.4.0 Milestone: Observability & Cross-Cluster Validation**
+Following the successful shipping of the Identity Stack (v0.3.0), focus shifts to observability wiring and hardening cross-cluster secret management.
 
 ## Recent Changes
-- **PR #60 MERGED:** Keycloak public URL fix—`KC_HOSTNAME_URL` set to `https://keycloak.3ai-talk.org`, ArgoCD `argocd-cm.yaml` URLs and OIDC issuer updated to `https://3ai-talk.org`, realm `redirectUris` updated. Squash-merged to main at commit `bf32623` (2026-05-20).
 - **v0.3.0 SHIPPED:** Identity stack integrated (Keycloak/LDAP/SSO/Vault-ESO).
 - **Identity Regression Fix:** Resolved Keycloak CrashLoopBackOff by removing conflicting \`KC_HOSTNAME\` vs \`KC_HOSTNAME_URL\` (PR #46). Fixed DB auth failure by aligning Postgres internal password with Vault-synced secret.
 - **Branch Created:** shopping-cart-infra-v0.4.0 for the next milestone.

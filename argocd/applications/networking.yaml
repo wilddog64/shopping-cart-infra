@@ -1,0 +1,43 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: shopping-cart-networking
+  namespace: cicd
+  labels:
+    app.kubernetes.io/name: shopping-cart-networking
+    app.kubernetes.io/part-of: shopping-cart
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: shopping-cart
+
+  source:
+    repoURL: https://github.com/wilddog64/shopping-cart-infra.git
+    targetRevision: HEAD
+    path: networking/istio
+    directory:
+      recurse: false
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+
+  info:
+    - name: Description
+      value: Istio Gateway and VirtualServices for host-based HTTP routing

@@ -3,6 +3,36 @@
 ## [Unreleased]
 
 ### Added
+- MinIO StatefulSet with 10Gi PVC in `shopping-cart-data` namespace as S3-compatible in-cluster object store
+- PostSync bucket-init Job (creates `product-images` bucket with anonymous read) and image-upload Job (generates 20 category images)
+- ESO ExternalSecret for MinIO credentials from Vault `secret/data/minio/credentials`
+- MinIO console accessible via NodePort 30900/30901; S3 API on ClusterIP
+- Architecture documentation: `docs/minio-image-pipeline.md`
+
+### Fixed
+- `identity/keycloak/keycloak-reconcile-hook-job.yaml` — use `authentication/flows/{alias}/executions` PUT endpoint (not `authentication/executions/{id}`) for sub-flow requirement updates; Keycloak 24.0 returns HTTP 404 for the leaf-execution endpoint when the target is a sub-flow (`authenticationFlow: true`), causing the job to abort mid-way under `set -euo pipefail` and leaving `otp-conditional-subflow` DISABLED and empty — MFA never activates
+- `identity/keycloak/keycloak-reconcile-hook-job.yaml` — capture `partialImport` exit code and log it explicitly; script continues to LDAP mapper setup and `triggerFullSync` regardless, fixing `user_not_found` on every re-deploy after the first ArgoCD sync
+- `identity/keycloak/realm-shopping-cart.json` — restore `pkce.code.challenge.method: S256` on `frontend` client; an earlier commit had unintentionally removed it (PKCE is correct for SPA public clients)
+- Add `LDAP_BIND_CREDENTIAL` env var to Keycloak realm reconcile hook job sourced from `ldap-secrets.LDAP_ADMIN_PASSWORD` — fixes LDAP federation bind failure on every PostSync run
+- Correct `minio/mc` image tag to `RELEASE.2024-11-05T11-29-45Z` — the `2024-11-07` tag does not exist on quay.io, causing `minio-bucket-init` and `minio-image-upload` jobs to fail with ErrImagePull
+- Set `MC_CONFIG_DIR=/tmp/.mc` in `minio-bucket-init` and `minio-image-upload` jobs — `minio/mc` image runs as non-root (UID 1000) and cannot write to `/root/.mc`, causing the bucket-init loop to never exit
+- Remove placeholder `redis-cart-secret` and `redis-orders-cache-secret` Secret manifests from `data-layer/redis/cart/` and `data-layer/redis/orders-cache/` — ESO ExternalSecrets in `data-layer/secrets/` own these secrets and overwrite the placeholder data with real Vault values, causing perpetual ArgoCD `data-layer` OutOfSync. Deleting the placeholders lets ESO fully own the secrets without conflict.
+
+## [0.5.0] - 2026-05-18
+
+### Added
+- `networking/istio/frontend-virtualservice.yaml` — new VirtualService routing `frontend.shopping-cart.local` to `frontend.shopping-cart-apps.svc.cluster.local:80`
+- `networking/istio/gateway.yaml` — add `frontend.shopping-cart.local` to Istio gateway hosts
+- `.github/workflows/build-push-deploy.yml` — add optional `build-args` input, wired to both "Build image" and "Push image" steps
+
+### Fixed
+- `data-layer/postgresql/products/init-db.sql`: removed SERIAL products table DDL that conflicted with SQLAlchemy UUID PK; SQLAlchemy's `create_all()` now owns the products table schema with UUID primary key, eliminating the need for manual table recreation on fresh clusters
+- `argocd/config/argocd-cm.yaml`: change `url` field from `http://argocd.shopping-cart.local` to `https://argocd.shopping-cart.local` so OIDC callback after Keycloak auth lands on ArgoCD (port 443 socat HTTPS wrapper) instead of Keycloak (port 80 port-forward)
+- `identity/keycloak/realm-shopping-cart.json` — add `http://frontend.shopping-cart.local/*` to frontend client `redirectUris` so HTTP (non-TLS) redirects work in local dev
+- Apply `argocd/projects/shopping-cart.yaml` to cluster — the `shopping-cart` AppProject was defined in the repo but never applied, causing `shopping-cart-networking` to stay `Unknown`; `networking.yaml` already correctly references `project: shopping-cart`
+- Add `networking/istio/keycloak-destinationrule.yaml` — disable mTLS for `keycloak.identity.svc.cluster.local` so ArgoCD (Istio-injected, `cicd` ns) can reach Keycloak (no sidecar, `identity` ns) for OIDC token exchange
+
+### Added
 - `argocd/applications/data-layer.yaml` — ArgoCD Application for data-layer (PostgreSQL, RabbitMQ, Redis); previously required manual `kubectl apply`
 - `data-layer/secrets/redis-cart-apps-externalsecret.yaml` — sync redis-cart password into `shopping-cart-apps/redis-cart-secret` for basket-service
 - `data-layer/secrets/redis-orders-cache-apps-externalsecret.yaml` — sync redis-orders-cache password into `shopping-cart-apps/redis-orders-cache-secret`
@@ -11,6 +41,7 @@
 
 ### Fixed
 - `argocd/config/argocd-rbac-cm.yaml`: updated `catalog-admin` role to reference `shopping-cart/shopping-cart-product-catalog` app name (was `shopping-cart/product-catalog`) — the app name mismatch caused `permission denied` for `catalog-admins` LDAP group members attempting to sync the product catalog
+- Update OIDC issuer URLs from internal cluster domain to external Keycloak domain (`keycloak.3ai-talk.org`) in ArgoCD config and Keycloak kustomization
 - Disabled service link injection (`enableServiceLinks: false`) in LDAP Deployment to prevent Kubernetes-injected `LDAP_PORT` env var from corrupting the slapd listen URL (parse error=5)
 - Remove duplicate `ldap-secrets-externalsecret.yaml` entry from `identity/ldap/kustomization.yaml` — fixes ArgoCD identity Application sync failure and unblocks Keycloak deployment
 - `data-layer/postgresql/orders/configmap.yaml`: add 11 missing columns to `orders` table (lifecycle timestamps: `paid_at`, `shipped_at`, `completed_at`, `cancelled_at`; shipping address: `shipping_street/city/state/postal_code/country`; tracking: `tracking_number`, `carrier`) — resolves `order-service` CrashLoopBackOff caused by JPA schema-validation failure on expanded `Order` entity; applies to freshly initialised PostgreSQL data directories only — existing PVCs need recreation or an `ALTER TABLE` migration

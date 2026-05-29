@@ -7,13 +7,40 @@ metadata:
 
 namespace: identity
 
+configMapGenerator:
+- name: keycloak-config
+  literals:
+  - KC_DB_URL_HOST=postgres-keycloak.identity.svc.cluster.local
+  - KC_DB_URL_PORT=5432
+  - KC_DB_URL_DATABASE=keycloak
+  - KC_DB_USERNAME=keycloak
+  - KC_HOSTNAME_URL=https://keycloak.3ai-talk.org
+  - KC_HOSTNAME_STRICT=true
+  - KC_PROXY=edge
+  - KC_HTTP_ENABLED=true
+  - KC_HEALTH_ENABLED=true
+  - KC_METRICS_ENABLED=true
+  - KC_REALM=shopping-cart
+  - LDAP_CONNECTION_URL=ldap://ldap.identity.svc.cluster.local:389
+  - LDAP_USERS_DN=ou=users,dc=shopping-cart,dc=local
+  - LDAP_BIND_DN=cn=admin,dc=shopping-cart,dc=local
+  - LDAP_USER_OBJECT_CLASSES=inetOrgPerson,organizationalPerson
+  - LDAP_UUID_ATTRIBUTE=entryUUID
+  - LDAP_USERNAME_ATTRIBUTE=uid
+  - LDAP_RDN_ATTRIBUTE=uid
+  - LDAP_FULL_SYNC_PERIOD=604800
+  - LDAP_CHANGED_SYNC_PERIOD=86400
+- name: keycloak-realm-import
+  files:
+  - realm-shopping-cart.json=realm-shopping-cart.json
+
 resources:
 - namespace.yaml
 - postgres.yaml
-- configmap.yaml
 - keycloak-secrets-externalsecret.yaml
 - keycloak-client-secrets-externalsecret.yaml
 - deployment.yaml
+- keycloak-reconcile-hook-job.yaml
 
 labels:
 - pairs:

@@ -1,0 +1,262 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-realm-reconcile
+  namespace: identity
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+  labels:
+    app.kubernetes.io/name: keycloak-realm-reconcile
+    app.kubernetes.io/component: identity-provider
+    app.kubernetes.io/part-of: shopping-cart
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: keycloak-realm-reconcile
+        app.kubernetes.io/component: identity-provider
+        app.kubernetes.io/part-of: shopping-cart
+    spec:
+      restartPolicy: Never
+      volumes:
+      - name: keycloak-realm-import
+        configMap:
+          name: keycloak-realm-import
+      containers:
+      - name: reconcile
+        image: quay.io/keycloak/keycloak:24.0
+        command:
+        - /bin/bash
+        - -euo
+        - pipefail
+        - -c
+        - |
+          # shellcheck shell=bash
+          # shellcheck disable=SC2153
+          escape_sed() {
+            printf '%s' "$1" | sed -e 's/[\/&]/\\&/g'
+          }
+
+          render_realm() {
+            local input_file="/realm/realm-shopping-cart.json"
+            local output_file="/tmp/realm-shopping-cart.rendered.json"
+            local argocd_client_secret order_service_client_secret product_catalog_client_secret grafana_client_secret ldap_bind_credential
+
+            argocd_client_secret="$(escape_sed "${ARGOCD_CLIENT_SECRET}")"
+            order_service_client_secret="$(escape_sed "${ORDER_SERVICE_CLIENT_SECRET}")"
+            product_catalog_client_secret="$(escape_sed "${PRODUCT_CATALOG_CLIENT_SECRET}")"
+            grafana_client_secret="$(escape_sed "${GRAFANA_CLIENT_SECRET}")"
+            ldap_bind_credential="$(escape_sed "${LDAP_BIND_CREDENTIAL}")"
+
+            sed \
+              -e "s/\${ARGOCD_CLIENT_SECRET}/${argocd_client_secret}/g" \
+              -e "s/\${ORDER_SERVICE_CLIENT_SECRET}/${order_service_client_secret}/g" \
+              -e "s/\${PRODUCT_CATALOG_CLIENT_SECRET}/${product_catalog_client_secret}/g" \
+              -e "s/\${GRAFANA_CLIENT_SECRET}/${grafana_client_secret}/g" \
+              -e "s/\${LDAP_BIND_CREDENTIAL}/${ldap_bind_credential}/g" \
+              "${input_file}" > "${output_file}"
+          }
+
+          deadline_seconds="${KEYCLOAK_RECONCILE_TIMEOUT_SECONDS:-900}"
+          deadline_epoch="$(($(date +%s) + deadline_seconds))"
+
+          until bash -lc '</dev/tcp/keycloak.identity.svc.cluster.local/80' >/dev/null 2>&1; do
+            if [ "$(date +%s)" -ge "${deadline_epoch}" ]; then
+              echo "Timed out waiting for Keycloak service"
+              exit 1
+            fi
+            echo "Waiting for Keycloak service..."
+            sleep 5
+          done
+
+          render_realm
+
+          /opt/keycloak/bin/kcadm.sh config credentials \
+            --server http://keycloak.identity.svc.cluster.local \
+            --realm master \
+            --user "${KEYCLOAK_ADMIN}" \
+            --password "${KEYCLOAK_ADMIN_PASSWORD}" >/dev/null
+
+          if /opt/keycloak/bin/kcadm.sh get "realms/${KC_REALM}" >/dev/null 2>&1; then
+            echo "Realm ${KC_REALM} exists; applying partial import"
+          else
+            echo "Realm ${KC_REALM} missing; creating realm shell"
+            /opt/keycloak/bin/kcadm.sh create realms -s "realm=${KC_REALM}" -s enabled=true >/dev/null
+          fi
+
+          _pi_rc=0
+          /opt/keycloak/bin/kcadm.sh create partialImport \
+            -r "${KC_REALM}" \
+            -s ifResourceExists=OVERWRITE \
+            -f /tmp/realm-shopping-cart.rendered.json || _pi_rc=$?
+          if [[ ${_pi_rc} -ne 0 ]]; then
+            echo "Warning: partialImport exited ${_pi_rc} (re-run duplicate-key is expected); continuing with LDAP setup"
+          fi
+
+          if /opt/keycloak/bin/kcadm.sh get "authentication/flows" \
+               -r "${KC_REALM}" 2>/dev/null \
+             | grep -q '"browser-with-conditional-otp"'; then
+            echo "browser-with-conditional-otp flow already exists; skipping creation"
+          else
+            echo "Creating browser-with-conditional-otp flow..."
+
+            /opt/keycloak/bin/kcadm.sh create "authentication/flows/browser/copy" \
+              -r "${KC_REALM}" -s newName=browser-with-conditional-otp
+
+            /opt/keycloak/bin/kcadm.sh create \
+              "authentication/flows/browser-with-conditional-otp/executions/flow" \
+              -r "${KC_REALM}" \
+              -s alias=otp-conditional-subflow \
+              -s type=basic-flow
+
+            _otp_subflow_exec_id=$(
+              /opt/keycloak/bin/kcadm.sh get \
+                "authentication/flows/browser-with-conditional-otp/executions" \
+                -r "${KC_REALM}" --fields id,displayName --format csv 2>/dev/null \
+              | grep "otp-conditional-subflow" | cut -d',' -f1 | tr -d '"'
+            )
+            if [[ -z "${_otp_subflow_exec_id}" ]]; then
+              echo "ERROR: could not resolve otp-conditional-subflow execution ID" >&2; exit 1
+            fi
+            /opt/keycloak/bin/kcadm.sh update \
+              "authentication/flows/browser-with-conditional-otp/executions" \
+              -r "${KC_REALM}" \
+              -b "{\"id\":\"${_otp_subflow_exec_id}\",\"requirement\":\"CONDITIONAL\",\"authenticationFlow\":true,\"displayName\":\"otp-conditional-subflow\"}"
+
+            /opt/keycloak/bin/kcadm.sh create \
+              "authentication/flows/otp-conditional-subflow/executions/execution" \
+              -r "${KC_REALM}" -s provider=conditional-user-role
+
+            _role_cond_id=$(
+              /opt/keycloak/bin/kcadm.sh get \
+                "authentication/flows/otp-conditional-subflow/executions" \
+                -r "${KC_REALM}" --fields id,providerId --format csv 2>/dev/null \
+              | grep "conditional-user-role" | cut -d',' -f1 | tr -d '"'
+            )
+            if [[ -z "${_role_cond_id}" ]]; then
+              echo "ERROR: could not resolve conditional-user-role execution ID" >&2; exit 1
+            fi
+            /opt/keycloak/bin/kcadm.sh create \
+              "authentication/executions/${_role_cond_id}/config" \
+              -r "${KC_REALM}" \
+              -s alias=platform-mfa-role-condition \
+              -s 'config={"conditionRoleAlias":"platform-mfa","negate":"false"}'
+            /opt/keycloak/bin/kcadm.sh update \
+              "authentication/executions/${_role_cond_id}" \
+              -r "${KC_REALM}" -s requirement=REQUIRED
+
+            /opt/keycloak/bin/kcadm.sh create \
+              "authentication/flows/otp-conditional-subflow/executions/execution" \
+              -r "${KC_REALM}" -s provider=auth-otp-form
+
+            _otp_form_id=$(
+              /opt/keycloak/bin/kcadm.sh get \
+                "authentication/flows/otp-conditional-subflow/executions" \
+                -r "${KC_REALM}" --fields id,providerId --format csv 2>/dev/null \
+              | grep "auth-otp-form" | cut -d',' -f1 | tr -d '"'
+            )
+            if [[ -z "${_otp_form_id}" ]]; then
+              echo "ERROR: could not resolve auth-otp-form execution ID" >&2; exit 1
+            fi
+            /opt/keycloak/bin/kcadm.sh update \
+              "authentication/executions/${_otp_form_id}" \
+              -r "${KC_REALM}" -s requirement=REQUIRED
+
+            echo "browser-with-conditional-otp flow created"
+          fi
+          /opt/keycloak/bin/kcadm.sh update "realms/${KC_REALM}" \
+            -s browserFlow=browser-with-conditional-otp
+          echo "browser-with-conditional-otp flow activated"
+
+          ldap_id="$(
+            /opt/keycloak/bin/kcadm.sh get components \
+              -r "${KC_REALM}" \
+              -q type=org.keycloak.storage.UserStorageProvider \
+              --fields id \
+              2>/dev/null \
+            | grep '"id"' | head -1 \
+            | sed 's/.*"id" : "\([^"]*\)".*/\1/'
+          )"
+
+          if [ -n "${ldap_id}" ]; then
+            PT="org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
+
+            create_mapper_if_missing() {
+              local name="$1"
+              local ldap_attribute="$2"
+              local model_attribute="$3"
+              local always_read="$4"
+              local mandatory="$5"
+              local existing mapper_file
+              existing="$(
+                /opt/keycloak/bin/kcadm.sh get components \
+                  -r "${KC_REALM}" \
+                  -q parent="${ldap_id}" \
+                  -q type=org.keycloak.storage.ldap.mappers.LDAPStorageMapper \
+                  -q name="${name}" \
+                  --fields id \
+                  2>/dev/null \
+                | grep -c '"id"' || true
+              )"
+
+              if [ "${existing}" -gt 0 ]; then
+                echo "LDAP mapper already exists: ${name}"
+                return 0
+              fi
+
+              mapper_file="$(mktemp /tmp/keycloak-ldap-mapper-XXXXXX.json)"
+              cat > "${mapper_file}" <<EOF
+          {"parentId":"${ldap_id}","providerType":"${PT}","providerId":"user-attribute-ldap-mapper","name":"${name}","config":{"ldap.attribute":["${ldap_attribute}"],"user.model.attribute":["${model_attribute}"],"read.only":["true"],"always.read.value.from.ldap":["${always_read}"],"is.mandatory.in.ldap":["${mandatory}"]}}
+          EOF
+              /opt/keycloak/bin/kcadm.sh create components -r "${KC_REALM}" -f "${mapper_file}" >/dev/null
+              rm -f "${mapper_file}"
+              echo "Created LDAP mapper: ${name}"
+            }
+
+            create_mapper_if_missing "username" "uid" "username" "false" "true"
+            create_mapper_if_missing "email" "mail" "email" "false" "false"
+            create_mapper_if_missing "first name" "givenName" "firstName" "true" "true"
+            create_mapper_if_missing "last name" "sn" "lastName" "true" "true"
+            create_mapper_if_missing "creation date" "createTimestamp" "createTimestamp" "true" "false"
+            create_mapper_if_missing "modify date" "modifyTimestamp" "modifyTimestamp" "true" "false"
+
+            /opt/keycloak/bin/kcadm.sh create \
+              "user-storage/${ldap_id}/sync?action=triggerFullSync" \
+              -r "${KC_REALM}" >/dev/null
+          else
+            echo "No LDAP component found; skipping mapper setup"
+          fi
+        envFrom:
+        - configMapRef:
+            name: keycloak-config
+        - secretRef:
+            name: keycloak-secrets
+        env:
+        - name: ARGOCD_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: argocd-client-secret
+        - name: ORDER_SERVICE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: order-service-client-secret
+        - name: PRODUCT_CATALOG_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: product-catalog-client-secret
+        - name: GRAFANA_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-client-secrets
+              key: grafana-client-secret
+        volumeMounts:
+        - name: keycloak-realm-import
+          mountPath: /realm
+          readOnly: true

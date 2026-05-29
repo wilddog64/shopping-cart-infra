@@ -219,6 +219,9 @@ This repository integrates with GitHub Actions and Jenkins for automated contain
 - **[Container Image Workflow Guide](docs/container-image-workflow.md)** - Complete guide for building and pushing images to GHCR
 - **[GitHub Actions & Jenkins Webhook Setup](docs/github-actions-webhook-setup.md)** - Step-by-step integration instructions
 
+### Release Notes
+- **[Keycloak live JSON reconcile](docs/issues/2026-05-14-keycloak-live-json-reconcile-without-rebuild.md)** - ships an Argo CD `PostSync` hook Job plus manifest/test updates so realm JSON can be applied live without rebuilding clusters.
+
 ### Automation Scripts
 Located in `bin/`:
 - **`build-and-push.sh`** - Build and push container images locally for testing
@@ -387,6 +390,24 @@ make rabbitmq-ui  # RabbitMQ management
 
 ---
 
+### MinIO Product Image Pipeline
+
+**Status**: Implemented (Milestone v1)
+
+In-cluster S3-compatible object store for product images. Eliminates dependency on
+ephemeral ACG sandbox S3 — images survive pod restarts via a 10Gi PVC.
+
+**Documentation**:
+- [MinIO Image Pipeline](docs/minio-image-pipeline.md) - Architecture, components, bootstrap sequence, and image URL format
+
+**Quick reference**:
+- MinIO API: `ClusterIP :9000` (internal) / NodePort `30900` (local access)
+- MinIO console: `http://<node-ip>:30901`
+- Images proxied at: `/minio/product-images/<subcategory-slug>.jpg`
+- Credentials: Vault `secret/data/minio/credentials`
+
+---
+
 ### Vault Integration Enhancements
 
 **Current**: Dynamic PostgreSQL credentials, static Redis passwords
@@ -409,3 +430,9 @@ Apache 2.0
   - [shopping-cart-order](https://github.com/wilddog64/shopping-cart-order)
   - [shopping-cart-payment](https://github.com/wilddog64/shopping-cart-payment)
   - [shopping-cart-basket](https://github.com/wilddog64/shopping-cart-basket)
+
+## Identity Stack (v0.3.0)
+The repository now includes a fully managed identity provider stack:
+- **Keycloak:** OIDC provider for SSO, sitting behind Istio.
+- **OpenLDAP:** User directory backend.
+- **Vault ESO:** All credentials are dynamically synced from Vault.

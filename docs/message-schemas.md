@@ -183,7 +183,7 @@ Published when a new order is placed.
 
 ---
 
-#### order.paid (v1.0)
+#### order.paid (v1.1)
 
 Published when payment is successfully processed.
 
@@ -214,7 +214,7 @@ Published when payment is successfully processed.
 
 ---
 
-#### order.shipped (v1.0)
+#### order.shipped (v1.1)
 
 Published when order is shipped.
 
@@ -242,7 +242,7 @@ Published when order is shipped.
 
 ---
 
-#### order.completed (v1.0)
+#### order.completed (v1.1)
 
 Published when order is delivered.
 
@@ -268,7 +268,7 @@ Published when order is delivered.
 
 ---
 
-#### order.cancelled (v1.0)
+#### order.cancelled (v1.1)
 
 Published when order is cancelled.
 
@@ -301,7 +301,7 @@ Published when order is cancelled.
 
 ### Inventory Events
 
-#### inventory.updated (v1.0)
+#### inventory.updated (v1.1)
 
 Published when product inventory changes.
 
@@ -332,7 +332,7 @@ Published when product inventory changes.
 
 ---
 
-#### inventory.low (v1.0)
+#### inventory.low (v1.1)
 
 Published when product stock falls below threshold.
 
@@ -359,7 +359,7 @@ Published when product stock falls below threshold.
 
 ---
 
-#### inventory.reserved (v1.0)
+#### inventory.reserved (v1.1)
 
 Published when stock is reserved for an order.
 
@@ -387,7 +387,7 @@ Published when stock is reserved for an order.
 
 ### Cart Events
 
-#### cart.abandoned (v1.0)
+#### cart.abandoned (v1.1)
 
 Published when a cart is abandoned (no activity for 1 hour with items).
 
@@ -422,7 +422,7 @@ Published when a cart is abandoned (no activity for 1 hour with items).
 
 ---
 
-#### cart.item.added (v1.0)
+#### cart.item.added (v1.1)
 
 Published when item is added to cart.
 
@@ -452,7 +452,7 @@ Published when item is added to cart.
 
 ### Notification Events
 
-#### notification.email (v1.0)
+#### notification.email (v1.1)
 
 Command message to send an email.
 
@@ -580,7 +580,7 @@ Schema versions follow semver: `MAJOR.MINOR`
 **v1.0 → v1.1**: Add optional `metadata` field
 
 ```json
-// v1.0
+// v1.1
 {
   "type": "order.created",
   "version": "1.0",

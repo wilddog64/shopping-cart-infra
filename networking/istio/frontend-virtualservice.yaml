@@ -1,0 +1,19 @@
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: frontend
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/part-of: shopping-cart
+spec:
+  hosts:
+    - frontend.shopping-cart.local
+  gateways:
+    - istio-system/default-gateway
+  http:
+    - route:
+        - destination:
+            host: frontend.shopping-cart-apps.svc.cluster.local
+            port:
+              number: 80

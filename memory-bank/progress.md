@@ -1,13 +1,9 @@
 # Progress: shopping-cart-infra
 
 ## Status
-- **v0.5.0 SHIPPED** (2026-05-20) — Keycloak public URL fix (PR #60 merged).
 - **v0.4.0 IN PROGRESS** (2026-05-13) — Observability & Cross-Cluster validation.
 - **v0.3.0 SHIPPED** (2026-05-10) — Identity SSO & Vault-ESO migration.
 - **v0.2.0 SHIPPED** — Data Layer & Kitchen-Ansible testing.
-
-## Milestone: v0.5.0 (Keycloak Public URL)
-- [x] Keycloak public URL fix — `KC_HOSTNAME_URL` set to `https://keycloak.3ai-talk.org`, ArgoCD `argocd-cm.yaml` updated with public URLs and correct OIDC issuer, realm `redirectUris` updated. PR #60 squash-merged to main at `bf32623` (2026-05-20).
 
 ## Milestone: v0.4.0 (Observability)
 - [ ] Prometheus ServiceMonitors for Keycloak
