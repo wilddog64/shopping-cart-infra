@@ -97,6 +97,71 @@ spec:
             echo "Warning: partialImport exited ${_pi_rc} (re-run duplicate-key is expected); continuing with LDAP setup"
           fi
 
+          if /opt/keycloak/bin/kcadm.sh get "authentication/flows" \
+               -r "${KC_REALM}" 2>/dev/null \
+             | grep -q '"browser-with-conditional-otp"'; then
+            echo "browser-with-conditional-otp flow already exists; skipping"
+          else
+            echo "Creating browser-with-conditional-otp flow..."
+
+            /opt/keycloak/bin/kcadm.sh create "authentication/flows/browser/copy" \
+              -r "${KC_REALM}" -s newName=browser-with-conditional-otp
+
+            /opt/keycloak/bin/kcadm.sh create \
+              "authentication/flows/browser-with-conditional-otp/executions/flow" \
+              -r "${KC_REALM}" \
+              -s alias=otp-conditional-subflow \
+              -s type=basic-flow
+
+            _otp_subflow_exec_id=$(
+              /opt/keycloak/bin/kcadm.sh get \
+                "authentication/flows/browser-with-conditional-otp/executions" \
+                -r "${KC_REALM}" --fields id,displayName --format csv 2>/dev/null \
+              | grep "otp-conditional-subflow" | cut -d',' -f1 | tr -d '"'
+            )
+            /opt/keycloak/bin/kcadm.sh update \
+              "authentication/executions/${_otp_subflow_exec_id}" \
+              -r "${KC_REALM}" -s requirement=CONDITIONAL
+
+            /opt/keycloak/bin/kcadm.sh create \
+              "authentication/flows/otp-conditional-subflow/executions/execution" \
+              -r "${KC_REALM}" -s provider=conditional-user-role
+
+            _role_cond_id=$(
+              /opt/keycloak/bin/kcadm.sh get \
+                "authentication/flows/otp-conditional-subflow/executions" \
+                -r "${KC_REALM}" --fields id,providerId --format csv 2>/dev/null \
+              | grep "conditional-user-role" | cut -d',' -f1 | tr -d '"'
+            )
+            /opt/keycloak/bin/kcadm.sh create \
+              "authentication/executions/${_role_cond_id}/config" \
+              -r "${KC_REALM}" \
+              -s alias=platform-mfa-role-condition \
+              -s 'config={"conditionRoleAlias":"platform-mfa","negate":"false"}'
+            /opt/keycloak/bin/kcadm.sh update \
+              "authentication/executions/${_role_cond_id}" \
+              -r "${KC_REALM}" -s requirement=REQUIRED
+
+            /opt/keycloak/bin/kcadm.sh create \
+              "authentication/flows/otp-conditional-subflow/executions/execution" \
+              -r "${KC_REALM}" -s provider=auth-otp-form
+
+            _otp_form_id=$(
+              /opt/keycloak/bin/kcadm.sh get \
+                "authentication/flows/otp-conditional-subflow/executions" \
+                -r "${KC_REALM}" --fields id,providerId --format csv 2>/dev/null \
+              | grep "auth-otp-form" | cut -d',' -f1 | tr -d '"'
+            )
+            /opt/keycloak/bin/kcadm.sh update \
+              "authentication/executions/${_otp_form_id}" \
+              -r "${KC_REALM}" -s requirement=REQUIRED
+
+            /opt/keycloak/bin/kcadm.sh update "realms/${KC_REALM}" \
+              -s browserFlow=browser-with-conditional-otp
+
+            echo "browser-with-conditional-otp flow created and activated"
+          fi
+
           ldap_id="$(
             /opt/keycloak/bin/kcadm.sh get components \
               -r "${KC_REALM}" \
