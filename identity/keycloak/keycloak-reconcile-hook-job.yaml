@@ -100,7 +100,7 @@ spec:
           if /opt/keycloak/bin/kcadm.sh get "authentication/flows" \
                -r "${KC_REALM}" 2>/dev/null \
              | grep -q '"browser-with-conditional-otp"'; then
-            echo "browser-with-conditional-otp flow already exists; skipping"
+            echo "browser-with-conditional-otp flow already exists; skipping creation"
           else
             echo "Creating browser-with-conditional-otp flow..."
 
@@ -119,6 +119,9 @@ spec:
                 -r "${KC_REALM}" --fields id,displayName --format csv 2>/dev/null \
               | grep "otp-conditional-subflow" | cut -d',' -f1 | tr -d '"'
             )
+            if [[ -z "${_otp_subflow_exec_id}" ]]; then
+              echo "ERROR: could not resolve otp-conditional-subflow execution ID" >&2; exit 1
+            fi
             /opt/keycloak/bin/kcadm.sh update \
               "authentication/executions/${_otp_subflow_exec_id}" \
               -r "${KC_REALM}" -s requirement=CONDITIONAL
@@ -133,6 +136,9 @@ spec:
                 -r "${KC_REALM}" --fields id,providerId --format csv 2>/dev/null \
               | grep "conditional-user-role" | cut -d',' -f1 | tr -d '"'
             )
+            if [[ -z "${_role_cond_id}" ]]; then
+              echo "ERROR: could not resolve conditional-user-role execution ID" >&2; exit 1
+            fi
             /opt/keycloak/bin/kcadm.sh create \
               "authentication/executions/${_role_cond_id}/config" \
               -r "${KC_REALM}" \
@@ -152,15 +158,18 @@ spec:
                 -r "${KC_REALM}" --fields id,providerId --format csv 2>/dev/null \
               | grep "auth-otp-form" | cut -d',' -f1 | tr -d '"'
             )
+            if [[ -z "${_otp_form_id}" ]]; then
+              echo "ERROR: could not resolve auth-otp-form execution ID" >&2; exit 1
+            fi
             /opt/keycloak/bin/kcadm.sh update \
               "authentication/executions/${_otp_form_id}" \
               -r "${KC_REALM}" -s requirement=REQUIRED
 
-            /opt/keycloak/bin/kcadm.sh update "realms/${KC_REALM}" \
-              -s browserFlow=browser-with-conditional-otp
-
-            echo "browser-with-conditional-otp flow created and activated"
+            echo "browser-with-conditional-otp flow created"
           fi
+          /opt/keycloak/bin/kcadm.sh update "realms/${KC_REALM}" \
+            -s browserFlow=browser-with-conditional-otp
+          echo "browser-with-conditional-otp flow activated"
 
           ldap_id="$(
             /opt/keycloak/bin/kcadm.sh get components \
