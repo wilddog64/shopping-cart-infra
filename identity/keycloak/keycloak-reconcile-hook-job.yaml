@@ -224,6 +224,45 @@ spec:
             create_mapper_if_missing "creation date" "createTimestamp" "createTimestamp" "true" "false"
             create_mapper_if_missing "modify date" "modifyTimestamp" "modifyTimestamp" "true" "false"
 
+            _gm_existing="$(
+              /opt/keycloak/bin/kcadm.sh get components \
+                -r "${KC_REALM}" \
+                -q parent="${ldap_id}" \
+                -q type=org.keycloak.storage.ldap.mappers.LDAPStorageMapper \
+                -q name="group-mapper" \
+                --fields id \
+                2>/dev/null \
+              | grep -c '"id"' || true
+            )"
+            if [ "${_gm_existing}" -gt 0 ]; then
+              echo "LDAP group mapper already exists"
+            else
+              _gm_file="$(mktemp /tmp/keycloak-group-mapper-XXXXXX.json)"
+              cat > "${_gm_file}" <<EOF
+          {"parentId":"${ldap_id}","providerType":"org.keycloak.storage.ldap.mappers.LDAPStorageMapper","providerId":"group-ldap-mapper","name":"group-mapper","config":{"groups.dn":["ou=groups,dc=shopping-cart,dc=local"],"group.name.ldap.attribute":["cn"],"group.object.classes":["groupOfNames"],"preserve.group.inheritance":["true"],"ignore.missing.groups":["false"],"membership.ldap.attribute":["member"],"membership.attribute.type":["DN"],"membership.user.ldap.attribute":["uid"],"mode":["READ_ONLY"],"user.roles.retrieve.strategy":["LOAD_GROUPS_BY_MEMBER_ATTRIBUTE"],"memberof.ldap.attribute":["memberOf"],"drop.non.existing.groups.during.sync":["false"]}}
+          EOF
+              /opt/keycloak/bin/kcadm.sh create components -r "${KC_REALM}" -f "${_gm_file}" >/dev/null
+              rm -f "${_gm_file}"
+              echo "Created LDAP group mapper"
+            fi
+            _gm_id="$(
+              /opt/keycloak/bin/kcadm.sh get components \
+                -r "${KC_REALM}" \
+                -q parent="${ldap_id}" \
+                -q type=org.keycloak.storage.ldap.mappers.LDAPStorageMapper \
+                -q name="group-mapper" \
+                --fields id \
+                2>/dev/null \
+              | grep '"id"' | head -1 \
+              | sed 's/.*"id" : "\([^"]*\)".*/\1/'
+            )"
+            if [ -n "${_gm_id}" ]; then
+              /opt/keycloak/bin/kcadm.sh create \
+                "user-storage/${ldap_id}/mappers/${_gm_id}/sync?direction=fedToKeycloak" \
+                -r "${KC_REALM}" >/dev/null
+              echo "LDAP group sync complete"
+            fi
+
             /opt/keycloak/bin/kcadm.sh create \
               "user-storage/${ldap_id}/sync?action=triggerFullSync" \
               -r "${KC_REALM}" >/dev/null
