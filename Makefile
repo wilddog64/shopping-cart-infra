@@ -233,10 +233,12 @@ argocd-sync: ## Sync all shopping-cart applications (ApplicationSet-managed)
 	@argocd app sync shopping-cart-payment 2>/dev/null || echo "shopping-cart-payment not found"
 	@echo "${GREEN}✓ Sync triggered${RESET}"
 
-argocd-delete: ## Delete ArgoCD applications managed by services-git ApplicationSet
-	@echo "${YELLOW}Deleting ArgoCD applications...${RESET}"
+argocd-delete: ## Delete services-git ApplicationSet then its child Applications
+	@echo "${YELLOW}Removing services-git ApplicationSet (prevents automatic recreation)...${RESET}"
+	@kubectl delete applicationset services-git -n cicd --context k3d-k3d-cluster 2>/dev/null || true
+	@echo "${YELLOW}Deleting ArgoCD service applications...${RESET}"
 	@argocd app delete shopping-cart-order shopping-cart-basket shopping-cart-frontend shopping-cart-payment shopping-cart-product-catalog --yes 2>/dev/null || true
-	@echo "${GREEN}✓ ArgoCD applications deleted${RESET}"
+	@echo "${GREEN}✓ ApplicationSet and service applications deleted${RESET}"
 
 ##@ Identity (Keycloak + LDAP)
 

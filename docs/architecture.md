@@ -138,7 +138,7 @@ Service applications (`shopping-cart-basket`, `shopping-cart-order`, `shopping-c
 ApplicationSet deployed via k3d-manager. Each service repo's `k8s/base/` directory is the source.
 
 The `shopping-cart-apps` root Application watches `argocd/applications/` in this repo and manages
-platform-level apps (identity, networking, data-layer, namespace). It is **not** the parent of
+platform-level apps (identity, networking, data-layer). It is **not** the parent of
 the service applications — the ApplicationSet is.
 
 ### Deployment hierarchy
