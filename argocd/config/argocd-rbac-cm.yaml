@@ -69,10 +69,10 @@ data:
     # Application-specific policies
     # ============================================
 
-    # Order Service Admins - Full access to order-service app
-    p, role:order-admin, applications, *, shopping-cart/order-service, allow
-    p, role:order-admin, logs, get, shopping-cart/order-service, allow
-    p, role:order-admin, exec, create, shopping-cart/order-service, allow
+    # Order Service Admins - Full access to shopping-cart-order app
+    p, role:order-admin, applications, *, shopping-cart/shopping-cart-order, allow
+    p, role:order-admin, logs, get, shopping-cart/shopping-cart-order, allow
+    p, role:order-admin, exec, create, shopping-cart/shopping-cart-order, allow
     g, order-admins, role:order-admin
 
     # Product Catalog Admins - Full access to product-catalog app
