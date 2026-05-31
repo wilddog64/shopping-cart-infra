@@ -98,6 +98,7 @@ spec:
           app.kubernetes.io/instance: payment
           pci-scope: "true"
       spec:
+        storageClassName: local-path
         accessModes:
           - ReadWriteOnce
         resources:

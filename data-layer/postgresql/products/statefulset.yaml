@@ -95,6 +95,7 @@ spec:
           app.kubernetes.io/name: postgresql
           app.kubernetes.io/instance: products
       spec:
+        storageClassName: local-path
         accessModes:
           - ReadWriteOnce
         resources:
