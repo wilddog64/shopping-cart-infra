@@ -14,7 +14,7 @@ spec:
         # All pods for a service are down for > 5 min
         - alert: ServiceDown
           expr: |
-            sum by (namespace, pod) (
+            sum by (namespace) (
               kube_pod_status_ready{condition="true", namespace=~"shopping-cart.*"}
             ) == 0
           for: 5m

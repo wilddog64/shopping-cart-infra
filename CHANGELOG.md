@@ -11,6 +11,8 @@
 - Architecture documentation: `docs/minio-image-pipeline.md`
 
 ### Fixed
+- Pin `storageClassName: local-path` in all StatefulSet volumeClaimTemplates (postgresql/orders, postgresql/products, postgresql/payment, redis/cart, redis/orders-cache, minio) to prevent ArgoCD data-layer OutOfSync on every cluster rebuild
+- Normalize Istio VirtualService API version from `networking.istio.io/v1beta1` to `v1` in frontend and ArgoCD VirtualServices to prevent shopping-cart-networking OutOfSync
 - `argocd/applications/`: remove legacy static Application definitions for basket-service, frontend, order-service, payment-service, product-catalog — superseded by services-git ApplicationSet; eliminated SharedResourceWarning and OutOfSync conflicts
 - Add `group-ldap-mapper` to Keycloak LDAP federation reconcile job so LDAP group memberships sync to Keycloak and ArgoCD RBAC works correctly for SSO users
 - `identity/keycloak/keycloak-reconcile-hook-job.yaml` — use `authentication/flows/{alias}/executions` PUT endpoint (not `authentication/executions/{id}`) for sub-flow requirement updates; Keycloak 24.0 returns HTTP 404 for the leaf-execution endpoint when the target is a sub-flow (`authenticationFlow: true`), causing the job to abort mid-way under `set -euo pipefail` and leaving `otp-conditional-subflow` DISABLED and empty — MFA never activates
