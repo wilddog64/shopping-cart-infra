@@ -88,6 +88,7 @@ spec:
           app.kubernetes.io/name: minio
           app.kubernetes.io/instance: product-images
       spec:
+        storageClassName: local-path
         accessModes:
           - ReadWriteOnce
         resources:
