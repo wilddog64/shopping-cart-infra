@@ -12,6 +12,7 @@
 
 ### Fixed
 - Pin `storageClassName: local-path` in all StatefulSet volumeClaimTemplates (postgresql/orders, postgresql/products, postgresql/payment, redis/cart, redis/orders-cache, minio) to prevent ArgoCD data-layer OutOfSync on every cluster rebuild
+- `argocd/applications/data-layer.yaml`: add `ignoreDifferences` for StatefulSet `volumeClaimTemplates.storageClassName` and `volumeClaimTemplates.volumeMode` — prevents ArgoCD from patching immutable fields on existing StatefulSets, unblocking the data-layer Application sync loop
 - Normalize Istio VirtualService API version from `networking.istio.io/v1beta1` to `v1` in frontend and ArgoCD VirtualServices to prevent shopping-cart-networking OutOfSync
 - `argocd/applications/`: remove legacy static Application definitions for basket-service, frontend, order-service, payment-service, product-catalog — superseded by services-git ApplicationSet; eliminated SharedResourceWarning and OutOfSync conflicts
 - Add `group-ldap-mapper` to Keycloak LDAP federation reconcile job so LDAP group memberships sync to Keycloak and ArgoCD RBAC works correctly for SSO users
