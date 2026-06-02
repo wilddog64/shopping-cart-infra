@@ -1,8 +1,9 @@
 # Active Context: shopping-cart-infra
 
-## Current Status (2026-05-13)
+## Current Status (2026-06-01)
 **v0.4.0 Milestone: Observability & Cross-Cluster Validation**
 Following the successful shipping of the Identity Stack (v0.3.0), focus shifts to observability wiring and hardening cross-cluster secret management.
+**PR #82 Merged:** frontend.3ai-talk.org SSO fix + ArgoCD data-layer RespectIgnoreDifferences (SHA `7bf03ae`). Keycloak pod restart still pending — ArgoCD must sync `shopping-cart-identity` first, then pod restart for realm JSON to take effect.
 
 ## Recent Changes
 - **v0.3.0 SHIPPED:** Identity stack integrated (Keycloak/LDAP/SSO/Vault-ESO).
@@ -18,6 +19,7 @@ Following the successful shipping of the Identity Stack (v0.3.0), focus shifts t
 - **COMPLETE:** Removed the dead nested LDAP mapper block from `identity/keycloak/realm-shopping-cart.json` and corrected the ArgoCD routing doc command from `kubectl apply -k` to `kubectl apply -f`. Commit `e9733a1` pushed to `origin/bug/keycloak-ldap-mappers-missing`. Remote branch log: `e9733a1 fix(keycloak): remove dead realm JSON mapper block; fix apply-k doc error`, `463b436 docs(bugs): add spec for dead realm JSON mapper block and apply-k doc error`, `bdabef6 docs: record copilot review follow-up`.
 - **COMPLETE:** Reconcile-hook python3 removal fix — on `shopping-cart-infra-v0.5.1`, replaced both `python3` JSON parsing calls in `identity/keycloak/keycloak-reconcile-hook-job.yaml` with `kcadm.sh` server-side queries, preserved the `grep -c '"id"' || echo 0` fallback exactly as specified, verified shellcheck on the extracted hook script, and pushed commit `a2d4907` to `origin/shopping-cart-infra-v0.5.1`.
 - **COMPLETE:** `frontend.3ai-talk.org` SSO redirect URI and gateway routing fix landed on `docs/next-improvements`; commit `da239d1` (`fix(networking+keycloak): add frontend.3ai-talk.org redirect URI and gateway routing`) adds `https://frontend.3ai-talk.org/*` to the `frontend` client redirect URIs and routes `frontend.3ai-talk.org` through the Istio gateway and frontend VirtualService while preserving the existing `shopping-cart.local` entries; validation used `python3 -m json.tool` for `identity/keycloak/realm-shopping-cart.json` plus Ruby YAML parsing for `networking/istio/gateway.yaml` and `networking/istio/frontend-virtualservice.yaml`.
+- **MERGED:** PR #82 merged to main at SHA `7bf03ae` (2026-06-01). Copilot caught three issues: redirect URI was wildcard `/*` instead of exact `/callback` (security improvement), PR scope broader than title, spec had contradictory rule. Exact callback path now standard for production. Keycloak pod restart pending ArgoCD sync + reconcile. Retrospective: `docs/retro/2026-06-01-pr82-retrospective.md` (commit `43367f8`). Branch protection restore pending (GitHub API 502 gateway error).
 
 ## Next Steps
 - **Observability Stage 1:** Deploy ServiceMonitors for Keycloak, LDAP, and databases.
