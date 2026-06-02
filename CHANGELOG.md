@@ -11,6 +11,7 @@
 - Architecture documentation: `docs/minio-image-pipeline.md`
 
 ### Fixed
+- Add `https://frontend.3ai-talk.org/*` to Keycloak `frontend` client `redirectUris`, add `frontend.3ai-talk.org` to Istio `default-gateway` hosts, and add `frontend.3ai-talk.org` to `frontend` VirtualService hosts — fixes `invalid_redirect_uri` SSO login failure on the public domain
 - Pin `storageClassName: local-path` in all StatefulSet volumeClaimTemplates (postgresql/orders, postgresql/products, postgresql/payment, redis/cart, redis/orders-cache, minio) to prevent ArgoCD data-layer OutOfSync on every cluster rebuild
 - `argocd/applications/data-layer.yaml`: add `ignoreDifferences` for StatefulSet `volumeClaimTemplates.storageClassName` and `volumeClaimTemplates.volumeMode` — prevents ArgoCD from patching immutable fields on existing StatefulSets, unblocking the data-layer Application sync loop
 - `argocd/applications/data-layer.yaml`: add `RespectIgnoreDifferences=true` to syncOptions — prevents ArgoCD from including ignored immutable fields (`volumeClaimTemplates.storageClassName`, `volumeClaimTemplates.volumeMode`) in sync payloads, making the StatefulSet immutable-field protection permanent
