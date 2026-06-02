@@ -18,3 +18,4 @@ spec:
         - keycloak.shopping-cart.local
         - argocd.shopping-cart.local
         - frontend.shopping-cart.local
+        - frontend.3ai-talk.org

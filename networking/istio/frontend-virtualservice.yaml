@@ -9,6 +9,7 @@ metadata:
 spec:
   hosts:
     - frontend.shopping-cart.local
+    - frontend.3ai-talk.org
   gateways:
     - istio-system/default-gateway
   http:

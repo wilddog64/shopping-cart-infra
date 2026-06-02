@@ -315,7 +315,8 @@
         "http://localhost:5173/*",
         "http://localhost:3000/*",
         "https://frontend.shopping-cart.local/*",
-        "http://frontend.shopping-cart.local/*"
+        "http://frontend.shopping-cart.local/*",
+        "https://frontend.3ai-talk.org/callback"
       ],
       "webOrigins": [
         "+"
