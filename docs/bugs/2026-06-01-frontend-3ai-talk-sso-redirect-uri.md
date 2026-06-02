@@ -137,7 +137,7 @@ spec:
 
 - Do NOT create a PR
 - Do NOT skip pre-commit hooks (`--no-verify`)
-- Do NOT modify files outside the three listed targets
+- Do NOT modify files outside the three listed targets (exception: `memory-bank/activeContext.md` and `memory-bank/progress.md` are always required — see Definition of Done)
 - Do NOT commit to `main` — work on `docs/next-improvements`
 - Do NOT change the existing `shopping-cart.local` entries — they are used for local dev
 
