@@ -128,7 +128,7 @@ data:
     description: Read-only access to Grafana
     member: uid=admin,ou=users,dc=shopping-cart,dc=local
 
-  # Sample Users — passwords: admin/Shopping1!  developer/Dev1234!  operator/Ops5678!
+  # Sample Users (dev only) — credentials documented in k3d-manager docs/bugs/v1.6.0-bugfix-shopping-cart-images-keycloak.md
   06-sample-users.ldif: |
     # Admin User
     dn: uid=admin,ou=users,dc=shopping-cart,dc=local
