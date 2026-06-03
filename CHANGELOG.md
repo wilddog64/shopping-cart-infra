@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+- `data-layer/minio/image-upload-job.yaml`: replace `python:3.12-alpine` with `python:3.12-slim` — alpine uses musl-libc and cannot install Pillow manylinux wheels without a compiler, causing the image-upload job to fail silently (backoffLimit exhausted, no images uploaded)
+- `identity/ldap/bootstrap.yaml`: replace SSHA hashes in `06-sample-users.ldif` with known-password hashes for dev test users; credentials documented in spec (not in repo)
+
 ### Added
 - `.githooks/pre-push`: pre-push hook to block accidental direct pushes from feature branches to main; bypass with `ALLOW_MAIN_PUSH=1`
 - MinIO StatefulSet with 10Gi PVC in `shopping-cart-data` namespace as S3-compatible in-cluster object store

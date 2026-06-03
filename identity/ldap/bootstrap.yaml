@@ -128,7 +128,7 @@ data:
     description: Read-only access to Grafana
     member: uid=admin,ou=users,dc=shopping-cart,dc=local
 
-  # Sample Users
+  # Sample Users (dev only) — credentials documented in k3d-manager docs/bugs/v1.6.0-bugfix-shopping-cart-images-keycloak.md
   06-sample-users.ldif: |
     # Admin User
     dn: uid=admin,ou=users,dc=shopping-cart,dc=local
@@ -140,7 +140,7 @@ data:
     sn: Admin
     givenName: Platform
     mail: admin@shopping-cart.local
-    userPassword: {SSHA}ZfwX2zsIxK1nHdnXPv/XSu5wiVsakdnx
+    userPassword: {SSHA}jOWZpghR3AzXJKzDxSXpoZGOhKO99NAA
 
     # Developer User
     dn: uid=developer,ou=users,dc=shopping-cart,dc=local
@@ -152,7 +152,7 @@ data:
     sn: Developer
     givenName: Dev
     mail: developer@shopping-cart.local
-    userPassword: {SSHA}YssMJy6/e4kCDaOrgft4sl+P4UZ2uYJL
+    userPassword: {SSHA}XNHfiNzf1usmXBbU74GgRnTOUQ+FNlyf
 
     # Operator User
     dn: uid=operator,ou=users,dc=shopping-cart,dc=local
@@ -164,7 +164,7 @@ data:
     sn: Operator
     givenName: Ops
     mail: operator@shopping-cart.local
-    userPassword: {SSHA}Mln6+H+Dz/zdf22VlMsb320rYGGlKoP5
+    userPassword: {SSHA}OnR0/gIM4bCaxVhKXZTqYrBo1JsId75x
 
   # Service Accounts
   07-service-accounts.ldif: |
