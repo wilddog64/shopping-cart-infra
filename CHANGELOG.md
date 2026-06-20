@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Removed
+- `data-layer/secrets/cluster-secret-store.yaml`: delete the stale ubuntu-k3s `vault-backend` ClusterSecretStore (token auth, `vault-bridge.secrets.svc.cluster.local:8201`). The app-cluster `vault-backend` CSS is now owned by k3d-manager's `eso-clustersecretstore` ApplicationSet (k8s-auth, external Vault). ExternalSecrets keep `secretStoreRef.name: vault-backend` unchanged. (ESO Phase 2)
+
 ### Fixed
 - `data-layer/minio/image-upload-job.yaml`: replace `python:3.12-alpine` with `python:3.12-slim` — alpine uses musl-libc and cannot install Pillow manylinux wheels without a compiler, causing the image-upload job to fail silently (backoffLimit exhausted, no images uploaded)
 - `identity/ldap/bootstrap.yaml`: replace SSHA hashes in `06-sample-users.ldif` with known-password hashes for dev test users; credentials documented in spec (not in repo)
