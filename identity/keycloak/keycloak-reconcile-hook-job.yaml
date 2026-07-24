@@ -179,8 +179,35 @@ spec:
               --fields id \
               2>/dev/null \
             | grep '"id"' | head -1 \
-            | sed 's/.*"id" : "\([^"]*\)".*/\1/'
+            | sed 's/.*"id" : "\([^"]*\)".*/\1/' || true
           )"
+
+          if [ -z "${ldap_id}" ]; then
+            echo "No LDAP component found; creating it from live env-backed config"
+            _realm_id="$(
+              /opt/keycloak/bin/kcadm.sh get "realms/${KC_REALM}" \
+                --fields id \
+                2>/dev/null \
+              | sed 's/.*"id" : "\([^"]*\)".*/\1/'
+            )"
+            if [ -n "${_realm_id}" ]; then
+              _ldap_file="$(mktemp /tmp/keycloak-ldap-component-XXXXXX.json)"
+              cat > "${_ldap_file}" <<EOF
+          {"name":"ldap","providerId":"ldap","providerType":"org.keycloak.storage.UserStorageProvider","parentId":"${_realm_id}","config":{"enabled":["true"],"priority":["0"],"fullSyncPeriod":["604800"],"changedSyncPeriod":["86400"],"cachePolicy":["DEFAULT"],"editMode":["READ_ONLY"],"syncRegistrations":["false"],"vendor":["other"],"usernameLDAPAttribute":["uid"],"rdnLDAPAttribute":["uid"],"uuidLDAPAttribute":["entryUUID"],"userObjectClasses":["inetOrgPerson, organizationalPerson"],"connectionUrl":["ldap://ldap.identity.svc.cluster.local:389"],"usersDn":["ou=users,dc=shopping-cart,dc=local"],"authType":["simple"],"bindDn":["cn=admin,dc=shopping-cart,dc=local"],"bindCredential":["${LDAP_BIND_CREDENTIAL}"],"searchScope":["2"],"validatePasswordPolicy":["false"],"trustEmail":["true"],"useTruststoreSpi":["ldapsOnly"],"connectionPooling":["true"],"pagination":["true"],"batchSizeForSync":["1000"]}}
+          EOF
+              /opt/keycloak/bin/kcadm.sh create components -r "${KC_REALM}" -f "${_ldap_file}" >/dev/null
+              rm -f "${_ldap_file}"
+              ldap_id="$(
+                /opt/keycloak/bin/kcadm.sh get components \
+                  -r "${KC_REALM}" \
+                  -q type=org.keycloak.storage.UserStorageProvider \
+                  --fields id \
+                  2>/dev/null \
+                | grep '"id"' | head -1 \
+                | sed 's/.*"id" : "\([^"]*\)".*/\1/' || true
+              )"
+            fi
+          fi
 
           if [ -n "${ldap_id}" ]; then
             PT="org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
@@ -266,8 +293,6 @@ spec:
             /opt/keycloak/bin/kcadm.sh create \
               "user-storage/${ldap_id}/sync?action=triggerFullSync" \
               -r "${KC_REALM}" >/dev/null
-          else
-            echo "No LDAP component found; skipping mapper setup"
           fi
         envFrom:
         - configMapRef:
