@@ -1,6 +1,7 @@
 # Progress: shopping-cart-infra
 
 ## Status
+- [x] **Stale `shopping-cart-rules` Application removal — READY 2026-08-04.** Commit `c558834` on `fix/remove-stale-shopping-cart-rules` deletes only `argocd/applications/monitoring-rules.yaml`. The Application is legacy and resource-free; live deletion showed its parent `shopping-cart-apps` recreated it from this manifest. Prometheus rules continue to be applied directly by k3d-manager observability.
 - **v0.4.0 IN PROGRESS** (2026-05-13) — Observability & Cross-Cluster validation.
 - **v0.3.0 SHIPPED** (2026-05-10) — Identity SSO & Vault-ESO migration.
 - **v0.2.0 SHIPPED** — Data Layer & Kitchen-Ansible testing.

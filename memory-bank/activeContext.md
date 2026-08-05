@@ -5,6 +5,7 @@
 Following the successful shipping of the Identity Stack (v0.3.0), focus shifts to observability wiring and hardening cross-cluster secret management.
 
 ## Recent Changes
+- **Stale ArgoCD rules Application removed:** `c558834` on `fix/remove-stale-shopping-cart-rules` removes the obsolete `argocd/applications/monitoring-rules.yaml`. The rules Application had no managed resources and was recreated by `shopping-cart-apps` after live deletion; PrometheusRules remain directly owned by k3d-manager's observability deployment. Merge this branch to remove the stale Unknown card permanently.
 - **v0.3.0 SHIPPED:** Identity stack integrated (Keycloak/LDAP/SSO/Vault-ESO).
 - **Identity Regression Fix:** Resolved Keycloak CrashLoopBackOff by removing conflicting \`KC_HOSTNAME\` vs \`KC_HOSTNAME_URL\` (PR #46). Fixed DB auth failure by aligning Postgres internal password with Vault-synced secret.
 - **Branch Created:** shopping-cart-infra-v0.4.0 for the next milestone.
