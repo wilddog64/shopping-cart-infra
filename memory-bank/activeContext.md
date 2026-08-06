@@ -1,5 +1,12 @@
 # Active Context: shopping-cart-infra
 
+## Stripe checkout runtime handoff (2026-08-06)
+
+`dd4d552` adds optional `dockerfile` and `context` inputs to the reusable image
+build/push workflow, preserving the existing root-Dockerfile defaults. The order
+service can now publish its Go orchestrator image without changing other services;
+the corresponding order branch selects `Dockerfile` with `go` as its context.
+
 ## Current Status (2026-05-13)
 **v0.4.0 Milestone: Observability & Cross-Cluster Validation**
 Following the successful shipping of the Identity Stack (v0.3.0), focus shifts to observability wiring and hardening cross-cluster secret management.
