@@ -9,6 +9,14 @@ on:
       image-name:
         required: true
         type: string
+      dockerfile:
+        required: false
+        type: string
+        default: ''
+      context:
+        required: false
+        type: string
+        default: .
       build-args:
         required: false
         type: string
@@ -31,10 +39,24 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Resolve Dockerfile path
+        id: resolve-dockerfile
+        shell: bash
+        env:
+          BUILD_CONTEXT: ${{ inputs.context }}
+          REQUESTED_DOCKERFILE: ${{ inputs.dockerfile }}
+        run: |
+          if [[ -n "${REQUESTED_DOCKERFILE}" ]]; then
+            printf 'path=%s\n' "${REQUESTED_DOCKERFILE}" >> "${GITHUB_OUTPUT}"
+          else
+            printf 'path=%s/Dockerfile\n' "${BUILD_CONTEXT%/}" >> "${GITHUB_OUTPUT}"
+          fi
+
       - name: Build image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ${{ inputs.context }}
+          file: ${{ steps.resolve-dockerfile.outputs.path }}
           push: false
           load: true
           tags: ${{ inputs.image-name }}:sha-${{ github.sha }}
@@ -64,7 +86,8 @@ jobs:
       - name: Push image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ${{ inputs.context }}
+          file: ${{ steps.resolve-dockerfile.outputs.path }}
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |

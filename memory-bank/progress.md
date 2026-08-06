@@ -1,5 +1,10 @@
 # Progress: shopping-cart-infra
 
+- [ ] **Stripe checkout Go runtime handoff — promotion pending.** Reusable workflow
+  commit `dd4d552` supports service-specific Docker context/file inputs. The order
+  service branch `fa79ad3` consumes this with the Go orchestrator; merge/promotion
+  and live checkout verification remain pending.
+
 ## Status
 - [x] **Stale `shopping-cart-rules` Application removal — READY 2026-08-04.** Commit `c558834` on `fix/remove-stale-shopping-cart-rules` deletes only `argocd/applications/monitoring-rules.yaml`. The Application is legacy and resource-free; live deletion showed its parent `shopping-cart-apps` recreated it from this manifest. Prometheus rules continue to be applied directly by k3d-manager observability.
 - **v0.4.0 IN PROGRESS** (2026-05-13) — Observability & Cross-Cluster validation.
