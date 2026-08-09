@@ -24,6 +24,10 @@ on:
     secrets:
       PACKAGES_TOKEN:
         required: false
+      APP_ID:
+        required: false
+      APP_PRIVATE_KEY:
+        required: false
 
 jobs:
   build-push:
@@ -97,25 +101,33 @@ jobs:
           secrets: |
             GH_TOKEN=${{ secrets.PACKAGES_TOKEN }}
 
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Update image tag in k8s/base/kustomization.yaml
         id: promote
         continue-on-error: true
         run: |
           sed -i "s|newTag:.*|newTag: sha-${{ github.sha }}|" k8s/base/kustomization.yaml
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
           git add k8s/base/kustomization.yaml
           if git diff --cached --quiet; then
             echo "Image tag already matches sha-${{ github.sha }}"
             exit 0
           fi
           git commit -m "ci: update ${{ inputs.service-name }} to sha-${{ github.sha }} [skip ci]"
+          git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${{ github.repository }}.git"
           if ! git push origin "HEAD:${{ github.ref_name }}"; then
             git pull --rebase origin "${{ github.ref_name }}"
             git push origin "HEAD:${{ github.ref_name }}"
           fi
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Fail when image promotion did not complete
         if: steps.promote.outcome == 'failure'
