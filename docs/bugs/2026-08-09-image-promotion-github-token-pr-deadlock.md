@@ -98,31 +98,36 @@ allowed while human PRs keep review + required checks.
 The `git diff --cached --quiet` early-exit ("Image tag already matches") is retained above the
 changed block — it is the idempotency guard for reruns.
 
-### Change 3 — GitHub App as bypass actor (per consumer repo: order, payment, basket)
+### Change 3 — deploy key as bypass actor (per consumer repo: order, payment, basket)
 
-**Dead end (probed 2026-08-09):** `github-actions[bot]` **cannot** be a ruleset bypass actor on
-a personal (user-owned) repo — the API rejects it: *"Actor GitHub Actions integration must be
-part of the ruleset source or owner organization"* (HTTP 422). So the default `GITHUB_TOKEN`
-can never push to a protected `main` here. Chosen mechanism: a **user-owned GitHub App**.
+**Two dead ends, both probed 2026-08-09 on a personal (user-owned) repo — rulesets there reject
+*any* integration as a bypass actor:**
+- `github-actions[bot]` (actor_type Integration, id 15368) → HTTP 422 *"Actor GitHub Actions
+  integration must be part of the ruleset source or owner organization."*
+- A **user-owned GitHub App** (actor_type Integration) → same 422. App-as-bypass is org-only.
 
-User setup (one-time):
-1. Create a GitHub App owned by `wilddog64` with **Repository permissions → Contents: Read and
-   write** (and Metadata: Read, auto). No webhook needed.
-2. Generate a private key; install the App on `order`, `payment`, `basket`.
-3. Add repo secrets on each of the three: `APP_ID` (numeric app id) and `APP_PRIVATE_KEY` (the
-   full PEM).
+Confirmed accepted bypass actor types on the personal repo: **RepositoryRole** (admin) and
+**DeployKey**. Chosen mechanism: a per-repo **deploy key** (no expiry → no rotation, keeps human
+review, requires no user setup — provisioned entirely via API).
 
-Then, per consumer repo, migrate `main` from **classic branch protection** to a **ruleset** that
-replicates the current rules (pull_request with `required_approving_review_count: 1`;
-required_status_checks strict with `Build & Test` + `Checkstyle`) and adds the **App** as a
-`bypass_actors` entry (`actor_type: Integration`, the App's id; `bypass_mode: always`). Delete
-the classic protection afterward (classic + ruleset both apply — the classic PR rule would
-otherwise still block the App). Keep review + checks enforced for human authors.
+Per consumer repo (all done via `gh`/API):
+1. `ssh-keygen -t ed25519` → add the **public** key as a **write** deploy key
+   (`POST /repos/{o}/{r}/keys`, `read_only:false`); store the **private** key as repo secret
+   `PROMOTER_SSH_KEY`.
+2. Create a **ruleset** on `main` replicating the classic rules (pull_request
+   `required_approving_review_count: 1`; required_status_checks strict with `Build & Test` +
+   `Checkstyle`; plus `deletion` + `non_fast_forward`) and add the deploy key as a
+   `bypass_actors` entry (`actor_type: DeployKey`, the key id; `bypass_mode: always`).
+3. **Delete** the classic branch protection (classic + ruleset both apply — the classic PR rule
+   would otherwise still block the deploy key). Human authors keep review + checks via the ruleset.
 
-The reusable workflow mints an installation token via `actions/create-github-app-token@v1`
-(`APP_ID`/`APP_PRIVATE_KEY`), rewrites `origin` to `https://x-access-token:<token>@github.com/...`,
-and pushes the `[skip ci]` tag-bump commit directly to the default branch. App installation
-tokens are auto-minted per run and never require rotation.
+The reusable workflow writes `PROMOTER_SSH_KEY` to `~/.ssh`, sets `GIT_SSH_COMMAND` +
+`git remote set-url origin git@github.com:<repo>`, and pushes the `[skip ci]` tag-bump commit
+directly to the default branch over SSH. The push is attributed to the deploy key → bypasses.
+
+**Superseded:** the earlier `github-actions[bot]` bypass plan and the GitHub App plan
+(`APP_ID`/`APP_PRIVATE_KEY` + `actions/create-github-app-token`) both fail on personal repos.
+Any Apps already created for this can be uninstalled.
 
 ### Change 4 — repin consumers to the new infra ref
 
