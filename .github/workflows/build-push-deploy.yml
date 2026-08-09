@@ -30,7 +30,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
       packages: write
 
     steps:
@@ -110,22 +109,11 @@ jobs:
             echo "Image tag already matches sha-${{ github.sha }}"
             exit 0
           fi
-          git commit -m "ci: update ${{ inputs.service-name }} to sha-${{ github.sha }}"
-          branch="ci/deploy-${{ inputs.service-name }}-${{ github.sha }}"
-          git push origin "HEAD:${branch}"
-          pr_url=$(gh pr create --base main --head "${branch}" \
-            --title "ci: deploy ${{ inputs.service-name }} sha-${{ github.sha }}" \
-            --body "Automated image promotion for ${{ inputs.service-name }}.")
-          pr_number="${pr_url##*/}"
-          gh pr merge --auto --squash "${pr_number}"
-          for _attempt in $(seq 1 30); do
-            state=$(gh pr view "${pr_number}" --json state --jq .state)
-            [ "${state}" = "MERGED" ] && exit 0
-            [ "${state}" = "CLOSED" ] && exit 1
-            sleep 10
-          done
-          echo "Timed out waiting for promotion PR ${pr_url} to merge" >&2
-          exit 1
+          git commit -m "ci: update ${{ inputs.service-name }} to sha-${{ github.sha }} [skip ci]"
+          if ! git push origin "HEAD:${{ github.ref_name }}"; then
+            git pull --rebase origin "${{ github.ref_name }}"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
