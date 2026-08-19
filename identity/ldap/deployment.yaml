@@ -32,6 +32,22 @@ spec:
     requests:
       storage: 2Gi
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ldap-config-pvc
+  namespace: identity
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  labels:
+    app.kubernetes.io/name: ldap
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -70,6 +86,10 @@ spec:
         env:
         - name: LDAP_SEED_INTERNAL_LDIF_PATH
           value: /ldif-staging
+        # The osixia image removes this directory by default. Keep it so the
+        # persisted database always has its matching OpenLDAP configuration.
+        - name: LDAP_REMOVE_CONFIG_AFTER_SETUP
+          value: "false"
         ports:
         - name: ldap
           containerPort: 389
@@ -109,7 +129,8 @@ spec:
         persistentVolumeClaim:
           claimName: ldap-data-pvc
       - name: ldap-config-vol
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: ldap-config-pvc
       - name: ldap-bootstrap
         configMap:
           name: ldap-bootstrap
