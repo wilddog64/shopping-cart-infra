@@ -26,10 +26,16 @@ on:
         required: false
       PROMOTER_SSH_KEY:
         required: false
+      COSIGN_KEY:
+        required: false
+      COSIGN_PASSWORD:
+        required: false
 
 jobs:
   build-push:
     runs-on: ubuntu-latest
+    env:
+      COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
     permissions:
       contents: write
       packages: write
@@ -85,6 +91,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push image
+        id: push
         uses: docker/build-push-action@v5
         with:
           context: ${{ inputs.context }}
@@ -98,6 +105,20 @@ jobs:
           cache-from: type=gha
           secrets: |
             GH_TOKEN=${{ secrets.PACKAGES_TOKEN }}
+
+      - name: Install cosign
+        if: env.COSIGN_KEY != ''
+        uses: sigstore/cosign-installer@v3.7.0
+
+      - name: Sign image by digest
+        if: env.COSIGN_KEY != ''
+        env:
+          COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          IMAGE_REF: ${{ inputs.image-name }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          cosign sign --yes --key env://COSIGN_KEY "${IMAGE_REF}@${DIGEST}"
 
       - name: Update image tag in k8s/base/kustomization.yaml
         id: promote
