@@ -120,6 +120,39 @@ jobs:
         run: |
           cosign sign --yes --key env://COSIGN_KEY "${IMAGE_REF}@${DIGEST}"
 
+      - name: Generate vuln attestation predicate (Trivy)
+        if: env.COSIGN_KEY != ''
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          image-ref: ${{ inputs.image-name }}@${{ steps.push.outputs.digest }}
+          format: cosign-vuln
+          output: trivy-vuln.json
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '0'
+
+      - name: Generate SBOM predicate (Trivy SPDX)
+        if: env.COSIGN_KEY != ''
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          image-ref: ${{ inputs.image-name }}@${{ steps.push.outputs.digest }}
+          format: spdx-json
+          output: sbom.spdx.json
+          exit-code: '0'
+
+      - name: Attest vuln + SBOM by digest
+        if: env.COSIGN_KEY != ''
+        env:
+          COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          IMAGE_REF: ${{ inputs.image-name }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          cosign attest --yes --key env://COSIGN_KEY \
+            --type vuln --predicate trivy-vuln.json "${IMAGE_REF}@${DIGEST}"
+          cosign attest --yes --key env://COSIGN_KEY \
+            --type spdxjson --predicate sbom.spdx.json "${IMAGE_REF}@${DIGEST}"
+
       - name: Update image tag in k8s/base/kustomization.yaml
         id: promote
         continue-on-error: true
