@@ -117,7 +117,7 @@ spec:
               /opt/keycloak/bin/kcadm.sh get \
                 "authentication/flows/browser-with-conditional-otp/executions" \
                 -r "${KC_REALM}" --fields id,displayName --format csv 2>/dev/null \
-              | grep "otp-conditional-subflow" | cut -d',' -f1 | tr -d '"'
+              | grep "otp-conditional-subflow" | cut -d',' -f1 | tr -d '"' || true
             )
             if [[ -z "${_otp_subflow_exec_id}" ]]; then
               echo "ERROR: could not resolve otp-conditional-subflow execution ID" >&2; exit 1
@@ -135,7 +135,7 @@ spec:
               /opt/keycloak/bin/kcadm.sh get \
                 "authentication/flows/otp-conditional-subflow/executions" \
                 -r "${KC_REALM}" --fields id,providerId --format csv 2>/dev/null \
-              | grep "conditional-user-role" | cut -d',' -f1 | tr -d '"'
+              | grep "conditional-user-role" | cut -d',' -f1 | tr -d '"' || true
             )
             if [[ -z "${_role_cond_id}" ]]; then
               echo "ERROR: could not resolve conditional-user-role execution ID" >&2; exit 1
@@ -157,7 +157,7 @@ spec:
               /opt/keycloak/bin/kcadm.sh get \
                 "authentication/flows/otp-conditional-subflow/executions" \
                 -r "${KC_REALM}" --fields id,providerId --format csv 2>/dev/null \
-              | grep "auth-otp-form" | cut -d',' -f1 | tr -d '"'
+              | grep "auth-otp-form" | cut -d',' -f1 | tr -d '"' || true
             )
             if [[ -z "${_otp_form_id}" ]]; then
               echo "ERROR: could not resolve auth-otp-form execution ID" >&2; exit 1
@@ -179,8 +179,39 @@ spec:
               --fields id \
               2>/dev/null \
             | grep '"id"' | head -1 \
-            | sed 's/.*"id" : "\([^"]*\)".*/\1/'
+            | sed 's/.*"id" : "\([^"]*\)".*/\1/' || true
           )"
+
+          if [ -z "${ldap_id}" ]; then
+            echo "No LDAP UserStorageProvider in realm ${KC_REALM}; creating it from the rendered realm"
+            _usp_file="/tmp/ldap-userstorageprovider.json"
+            sed -n '/^    "org\.keycloak\.storage\.UserStorageProvider": \[$/,/^    \]$/p' \
+              /tmp/realm-shopping-cart.rendered.json \
+              | sed -e '1d' -e '$d' \
+                    -e 's|^        "providerId": "ldap",$|        "providerId": "ldap",\n        "providerType": "org.keycloak.storage.UserStorageProvider",|' \
+              > "${_usp_file}"
+            if [ ! -s "${_usp_file}" ]; then
+              echo "ERROR: could not extract the LDAP UserStorageProvider block from the rendered realm" >&2
+              exit 1
+            fi
+            /opt/keycloak/bin/kcadm.sh create components \
+              -r "${KC_REALM}" -f "${_usp_file}" >/dev/null
+            rm -f "${_usp_file}"
+            ldap_id="$(
+              /opt/keycloak/bin/kcadm.sh get components \
+                -r "${KC_REALM}" \
+                -q type=org.keycloak.storage.UserStorageProvider \
+                --fields id \
+                2>/dev/null \
+              | grep '"id"' | head -1 \
+              | sed 's/.*"id" : "\([^"]*\)".*/\1/' || true
+            )"
+          fi
+
+          if [ -z "${ldap_id}" ]; then
+            echo "ERROR: realm ${KC_REALM} still has no LDAP UserStorageProvider after create attempt; refusing to continue with no user store" >&2
+            exit 1
+          fi
 
           if [ -n "${ldap_id}" ]; then
             PT="org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
@@ -254,7 +285,7 @@ spec:
                 --fields id \
                 2>/dev/null \
               | grep '"id"' | head -1 \
-              | sed 's/.*"id" : "\([^"]*\)".*/\1/'
+              | sed 's/.*"id" : "\([^"]*\)".*/\1/' || true
             )"
             if [ -n "${_gm_id}" ]; then
               /opt/keycloak/bin/kcadm.sh create \
@@ -267,7 +298,8 @@ spec:
               "user-storage/${ldap_id}/sync?action=triggerFullSync" \
               -r "${KC_REALM}" >/dev/null
           else
-            echo "No LDAP component found; skipping mapper setup"
+            echo "ERROR: LDAP component id unexpectedly empty" >&2
+            exit 1
           fi
         envFrom:
         - configMapRef:
