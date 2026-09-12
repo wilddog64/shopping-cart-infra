@@ -389,7 +389,7 @@
             "uid"
           ],
           "rdnLDAPAttribute": [
-            "uid"
+            "cn"
           ],
           "uuidLDAPAttribute": [
             "entryUUID"
@@ -398,16 +398,16 @@
             "inetOrgPerson, organizationalPerson"
           ],
           "connectionUrl": [
-            "ldap://ldap.identity.svc.cluster.local:389"
+            "ldap://openldap.identity.svc.cluster.local:389"
           ],
           "usersDn": [
-            "ou=users,dc=shopping-cart,dc=local"
+            "ou=users,dc=home,dc=org"
           ],
           "authType": [
             "simple"
           ],
           "bindDn": [
-            "cn=admin,dc=shopping-cart,dc=local"
+            "cn=ldap-admin,dc=home,dc=org"
           ],
           "bindCredential": [
             "${LDAP_BIND_CREDENTIAL}"

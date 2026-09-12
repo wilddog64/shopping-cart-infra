@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- `identity/keycloak/`: federate the `shopping-cart` realm against the `openldap` Service (`openldap.identity.svc.cluster.local`, backed by the `openldap-0` StatefulSet pod) on base DN `dc=home,dc=org`, instead of the osixia `ldap` deployment, retiring the osixia bind. `realm-shopping-cart.json` LDAP component now points at `ldap://openldap.identity.svc.cluster.local:389` with `usersDn: ou=users,dc=home,dc=org`, `bindDn: cn=ldap-admin,dc=home,dc=org` and `rdnLDAPAttribute: cn`; `keycloak-secrets-externalsecret.yaml` reads the bind credential from `secret/data/ldap/openldap-admin` (`LDAP_ADMIN_PASSWORD`); `kustomization.yaml` config literals updated to match. The reconcile hook's LDAP group mapper is repointed with it (`groups.dn` → `ou=groups,dc=home,dc=org`, `membership.user.ldap.attribute` → `cn`, matching the seeded `member: cn=...,ou=users,dc=home,dc=org` DNs) so group sync and ArgoCD RBAC keep working. Unifies SSO on the k3d-manager-seeded directory so `get-keycloak-password` and cluster-up seeding describe the same LDAP that Keycloak actually federates.
+
 ### Removed
 - `data-layer/secrets/cluster-secret-store.yaml`: delete the stale ubuntu-k3s `vault-backend` ClusterSecretStore (token auth, `vault-bridge.secrets.svc.cluster.local:8201`). The app-cluster `vault-backend` CSS is now owned by k3d-manager's `eso-clustersecretstore` ApplicationSet (k8s-auth, external Vault). ExternalSecrets keep `secretStoreRef.name: vault-backend` unchanged. (ESO Phase 2)
 
