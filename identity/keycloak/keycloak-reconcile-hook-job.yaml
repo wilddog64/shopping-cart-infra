@@ -103,20 +103,26 @@ spec:
             local match_value="$3"
             local value_column="$4"
 
-            printf '%s\n' "${csv}" | awk -F',' \
-              -v match_column="${match_column}" \
-              -v match_value="${match_value}" \
-              -v value_column="${value_column}" '
-                {
-                  for (i = 1; i <= NF; i++) {
-                    gsub(/^"|"$/, "", $i)
-                  }
-                  if ($match_column == match_value) {
-                    print $value_column
-                    exit
-                  }
-                }
-              '
+            local row
+            local -a fields
+            while IFS= read -r row; do
+              csv_fields "${row}"
+              if [[ "${fields[match_column-1]:-}" == "${match_value}" ]]; then
+                printf '%s\n' "${fields[value_column-1]:-}"
+                if [[ "${5:-first}" == "first" ]]; then return 0; fi
+              fi
+            done <<< "${csv}"
+          }
+
+          # kcadm's fixed execution fields contain no embedded commas. Bash is
+          # available in keycloak:24.0; awk/python/jq are not.
+          csv_fields() {
+            local i
+            IFS=',' read -r -a fields <<< "$1"
+            for i in "${!fields[@]}"; do
+              fields[i]="${fields[i]#\"}"
+              fields[i]="${fields[i]%\"}"
+            done
           }
 
           csv_match_count() {
@@ -124,46 +130,56 @@ spec:
             local match_column="$2"
             local match_value="$3"
 
-            printf '%s\n' "${csv}" | awk -F',' \
-              -v match_column="${match_column}" \
-              -v match_value="${match_value}" '
-                {
-                  for (i = 1; i <= NF; i++) {
-                    gsub(/^"|"$/, "", $i)
-                  }
-                  if ($match_column == match_value) count++
-                }
-                END { print count + 0 }
-              '
+            local row count=0
+            local -a fields
+            while IFS= read -r row; do
+              csv_fields "${row}"
+              if [[ "${fields[match_column-1]:-}" == "${match_value}" ]]; then
+                count=$((count + 1))
+              fi
+            done <<< "${csv}"
+            printf '%s\n' "${count}"
           }
 
           level0_rows() {
-            printf '%s\n' "$1" | awk -F',' '
-              NF == 0 { next }
-              {
-                row = $0
-                level = $6
-                gsub(/^"|"$/, "", level)
-                if (level == "0") print row
-              }
-            '
+            local row
+            local -a fields
+            while IFS= read -r row; do
+              csv_fields "${row}"
+              if [[ "${fields[5]:-}" == "0" ]]; then printf '%s\n' "${row}"; fi
+            done <<< "$1"
           }
 
           urlencode_path() {
-            printf '%s' "$1" | awk '
-              BEGIN {
-                for (i = 0; i < 256; i++) ord[sprintf("%c", i)] = i
-              }
-              {
-                out = ""
-                for (i = 1; i <= length($0); i++) {
-                  c = substr($0, i, 1)
-                  if (c ~ /[A-Za-z0-9._~-]/) out = out c
-                  else out = out sprintf("%%%02X", ord[c])
-                }
-                printf "%s", out
-              }
-            '
+            local LC_ALL=C value="$1" i c
+            for ((i=0; i<${#value}; i++)); do
+              c="${value:i:1}"
+              case "$c" in
+                [a-zA-Z0-9.~_-]) printf '%s' "$c" ;;
+                *) printf '%%%02X' "'$c" ;;
+              esac
+            done
+          }
+
+          csv_row_count() {
+            local row count=0
+            while IFS= read -r row; do
+              if [[ -n "$row" ]]; then count=$((count + 1)); fi
+            done <<< "$1"
+            printf '%s\n' "$count"
+          }
+
+          unexpected_top_rows() {
+            local row
+            local -a fields
+            while IFS= read -r row; do
+              [[ -n "$row" ]] || continue
+              csv_fields "$row"
+              case "${fields[1]:-}" in
+                Cookie|Kerberos|'Identity Provider Redirector'|"${forms_display_name}") ;;
+                *) printf '%s\n' "${fields[1]:-unnamed}" ;;
+              esac
+            done <<< "$1"
           }
 
           browser_flow="browser-with-conditional-otp"
@@ -183,13 +199,7 @@ spec:
               --fields id,displayName,requirement,authenticationFlow,flowId,level --format csv)"
             top_executions="$(level0_rows "${all_executions}")"
 
-            stray_ids="$(printf '%s\n' "${top_executions}" | awk -F',' '
-              {
-                gsub(/^"|"$/, "", $2)
-                gsub(/^"|"$/, "", $1)
-                if ($2 == "otp-conditional-subflow") print $1
-              }
-            ')"
+            stray_ids="$(csv_value "${top_executions}" 2 "otp-conditional-subflow" 1 all)"
             while IFS= read -r stray_id; do
               if [[ -n "${stray_id}" ]]; then
                 echo "Deleting stray top-level otp-conditional-subflow execution"
@@ -204,14 +214,8 @@ spec:
               -r "${KC_REALM}" \
               --fields id,displayName,requirement,authenticationFlow,flowId,level --format csv)"
             top_executions="$(level0_rows "${all_executions}")"
-            top_execution_count="$(printf '%s\n' "${top_executions}" | awk -F',' 'NF { count++ } END { print count + 0 }')"
-            unexpected_top_execution="$(printf '%s\n' "${top_executions}" | awk -F',' \
-              -v forms_display_name="${forms_display_name}" '
-              {
-                gsub(/^"|"$/, "", $2)
-                if ($2 != "Cookie" && $2 != "Kerberos" && $2 != "Identity Provider Redirector" && $2 != forms_display_name) print $2
-              }
-            ')"
+            top_execution_count="$(csv_row_count "${top_executions}")"
+            unexpected_top_execution="$(unexpected_top_rows "${top_executions}")"
             if [[ -n "${unexpected_top_execution}" ]]; then
               echo "ERROR: browser flow has unexpected level-0 executions after reconciliation: ${unexpected_top_execution}" >&2
               return 1
@@ -262,24 +266,18 @@ spec:
 
             conditional_otp_flow_alias="$(urlencode_path "${conditional_otp_display_name}")"
 
-            role_condition_id="$(/opt/keycloak/bin/kcadm.sh get \
+            role_config_csv="$(/opt/keycloak/bin/kcadm.sh get \
               "authentication/flows/${conditional_otp_flow_alias}/executions" \
-              -r "${KC_REALM}" --fields id,providerId --format csv \
-              | awk -F',' '
-                  { gsub(/^"|"$/, "", $1); gsub(/^"|"$/, "", $2) }
-                  $2 == "conditional-user-role" { print $1; exit }
-                ')"
+              -r "${KC_REALM}" --fields id,providerId --format csv)"
+            role_condition_id="$(csv_value "${role_config_csv}" 2 "conditional-user-role" 1)"
             if [[ -z "${role_condition_id}" ]]; then
               /opt/keycloak/bin/kcadm.sh create \
                 "authentication/flows/${conditional_otp_flow_alias}/executions/execution" \
                 -r "${KC_REALM}" -s provider=conditional-user-role
-              role_condition_id="$(/opt/keycloak/bin/kcadm.sh get \
+              role_config_csv="$(/opt/keycloak/bin/kcadm.sh get \
                 "authentication/flows/${conditional_otp_flow_alias}/executions" \
-                -r "${KC_REALM}" --fields id,providerId --format csv \
-                | awk -F',' '
-                    { gsub(/^"|"$/, "", $1); gsub(/^"|"$/, "", $2) }
-                    $2 == "conditional-user-role" { print $1; exit }
-                  ')"
+                -r "${KC_REALM}" --fields id,providerId --format csv)"
+              role_condition_id="$(csv_value "${role_config_csv}" 2 "conditional-user-role" 1)"
             fi
             if [[ -z "${role_condition_id}" ]]; then
               echo "ERROR: could not resolve conditional-user-role execution ID" >&2
@@ -304,13 +302,10 @@ spec:
             /opt/keycloak/bin/kcadm.sh update "authentication/executions/${role_condition_id}" \
               -r "${KC_REALM}" -s requirement=REQUIRED
 
-            otp_form_id="$(/opt/keycloak/bin/kcadm.sh get \
+            role_config_csv="$(/opt/keycloak/bin/kcadm.sh get \
               "authentication/flows/${conditional_otp_flow_alias}/executions" \
-              -r "${KC_REALM}" --fields id,providerId --format csv \
-              | awk -F',' '
-                  { gsub(/^"|"$/, "", $1); gsub(/^"|"$/, "", $2) }
-                  $2 == "auth-otp-form" { print $1; exit }
-                ')"
+              -r "${KC_REALM}" --fields id,providerId --format csv)"
+            otp_form_id="$(csv_value "${role_config_csv}" 2 "auth-otp-form" 1)"
             if [[ -z "${otp_form_id}" ]]; then
               echo "ERROR: Browser - Conditional OTP subflow is missing OTP Form" >&2
               return 1
@@ -323,7 +318,7 @@ spec:
               -r "${KC_REALM}" \
               --fields id,displayName,requirement,authenticationFlow,flowId,level --format csv)"
             top_executions="$(level0_rows "${all_executions}")"
-            top_execution_count="$(printf '%s\n' "${top_executions}" | awk -F',' 'NF { count++ } END { print count + 0 }')"
+            top_execution_count="$(csv_row_count "${top_executions}")"
             if [[ "${top_execution_count}" != "4" ]]; then
               echo "ERROR: browser flow still has stray level-0 executions after reconciliation" >&2
               return 1
