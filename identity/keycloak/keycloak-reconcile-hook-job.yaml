@@ -184,14 +184,14 @@ spec:
 
           flow_executions() {
             local flow_alias="$1" fields="$2" attempt output
-            for attempt in 1 2 3 4 5; do
+            for attempt in {1..30}; do
               if output="$(/opt/keycloak/bin/kcadm.sh get \
                 "authentication/flows/${flow_alias}/executions" \
                 -r "${KC_REALM}" --fields "${fields}" --format csv 2>/dev/null)"; then
                 printf '%s\n' "${output}"
                 return 0
               fi
-              if (( attempt == 5 )); then break; fi
+              if (( attempt == 30 )); then break; fi
               sleep 2
             done
             echo "ERROR: could not read executions for flow ${flow_alias}" >&2
