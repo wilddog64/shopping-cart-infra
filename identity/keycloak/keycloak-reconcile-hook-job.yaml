@@ -212,8 +212,12 @@ spec:
                 if ($2 != "Cookie" && $2 != "Kerberos" && $2 != "Identity Provider Redirector" && $2 != forms_display_name) print $2
               }
             ')"
-            if [[ "${top_execution_count}" != "4" || -n "${unexpected_top_execution}" ]]; then
+            if [[ -n "${unexpected_top_execution}" ]]; then
               echo "ERROR: browser flow has unexpected level-0 executions after reconciliation: ${unexpected_top_execution}" >&2
+              return 1
+            fi
+            if [[ "${top_execution_count}" != "4" ]]; then
+              echo "ERROR: browser flow has ${top_execution_count} level-0 executions after reconciliation, expected 4" >&2
               return 1
             fi
             cookie_count="$(csv_match_count "${top_executions}" 2 "Cookie")"
