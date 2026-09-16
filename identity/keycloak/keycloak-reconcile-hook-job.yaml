@@ -97,77 +97,261 @@ spec:
             echo "Warning: partialImport exited ${_pi_rc} (re-run duplicate-key is expected); continuing with LDAP setup"
           fi
 
+          csv_value() {
+            local csv="$1"
+            local match_column="$2"
+            local match_value="$3"
+            local value_column="$4"
+
+            printf '%s\n' "${csv}" | awk -F',' \
+              -v match_column="${match_column}" \
+              -v match_value="${match_value}" \
+              -v value_column="${value_column}" '
+                {
+                  for (i = 1; i <= NF; i++) {
+                    gsub(/^"|"$/, "", $i)
+                  }
+                  if ($match_column == match_value) {
+                    print $value_column
+                    exit
+                  }
+                }
+              '
+          }
+
+          csv_match_count() {
+            local csv="$1"
+            local match_column="$2"
+            local match_value="$3"
+
+            printf '%s\n' "${csv}" | awk -F',' \
+              -v match_column="${match_column}" \
+              -v match_value="${match_value}" '
+                {
+                  for (i = 1; i <= NF; i++) {
+                    gsub(/^"|"$/, "", $i)
+                  }
+                  if ($match_column == match_value) count++
+                }
+                END { print count + 0 }
+              '
+          }
+
+          level0_rows() {
+            printf '%s\n' "$1" | awk -F',' '
+              NF == 0 { next }
+              {
+                row = $0
+                level = $6
+                gsub(/^"|"$/, "", level)
+                if (level == "0") print row
+              }
+            '
+          }
+
+          urlencode_path() {
+            printf '%s' "$1" | awk '
+              BEGIN {
+                for (i = 0; i < 256; i++) ord[sprintf("%c", i)] = i
+              }
+              {
+                out = ""
+                for (i = 1; i <= length($0); i++) {
+                  c = substr($0, i, 1)
+                  if (c ~ /[A-Za-z0-9._~-]/) out = out c
+                  else out = out sprintf("%%%02X", ord[c])
+                }
+                printf "%s", out
+              }
+            '
+          }
+
+          browser_flow="browser-with-conditional-otp"
+          forms_display_name="${browser_flow} forms"
+          conditional_otp_display_name="${browser_flow} Browser - Conditional OTP"
+
+          reconcile_browser_flow() {
+            local top_executions stray_ids stray_id forms_execution_id forms_flow_id forms_flow_alias
+            local forms_executions username_password_id conditional_otp_execution_id conditional_otp_flow_id
+            local conditional_otp_flow_alias role_condition_id otp_form_id role_config_csv role_config_id
+            local top_execution_count unexpected_top_execution forms_requirement username_password_requirement
+            local cookie_count kerberos_count idp_redirector_count forms_count all_executions
+
+            all_executions="$(/opt/keycloak/bin/kcadm.sh get \
+              "authentication/flows/${browser_flow}/executions" \
+              -r "${KC_REALM}" \
+              --fields id,displayName,requirement,authenticationFlow,flowId,level --format csv)"
+            top_executions="$(level0_rows "${all_executions}")"
+
+            stray_ids="$(printf '%s\n' "${top_executions}" | awk -F',' '
+              {
+                gsub(/^"|"$/, "", $2)
+                gsub(/^"|"$/, "", $1)
+                if ($2 == "otp-conditional-subflow") print $1
+              }
+            ')"
+            while IFS= read -r stray_id; do
+              if [[ -n "${stray_id}" ]]; then
+                echo "Deleting stray top-level otp-conditional-subflow execution"
+                /opt/keycloak/bin/kcadm.sh delete \
+                  "authentication/executions/${stray_id}" \
+                  -r "${KC_REALM}"
+              fi
+            done <<< "${stray_ids}"
+
+            all_executions="$(/opt/keycloak/bin/kcadm.sh get \
+              "authentication/flows/${browser_flow}/executions" \
+              -r "${KC_REALM}" \
+              --fields id,displayName,requirement,authenticationFlow,flowId,level --format csv)"
+            top_executions="$(level0_rows "${all_executions}")"
+            top_execution_count="$(printf '%s\n' "${top_executions}" | awk -F',' 'NF { count++ } END { print count + 0 }')"
+            unexpected_top_execution="$(printf '%s\n' "${top_executions}" | awk -F',' \
+              -v forms_display_name="${forms_display_name}" '
+              {
+                gsub(/^"|"$/, "", $2)
+                if ($2 != "Cookie" && $2 != "Kerberos" && $2 != "Identity Provider Redirector" && $2 != forms_display_name) print $2
+              }
+            ')"
+            if [[ -n "${unexpected_top_execution}" ]]; then
+              echo "ERROR: browser flow has unexpected level-0 executions after reconciliation: ${unexpected_top_execution}" >&2
+              return 1
+            fi
+            if [[ "${top_execution_count}" != "4" ]]; then
+              echo "ERROR: browser flow has ${top_execution_count} level-0 executions after reconciliation, expected 4" >&2
+              return 1
+            fi
+            cookie_count="$(csv_match_count "${top_executions}" 2 "Cookie")"
+            kerberos_count="$(csv_match_count "${top_executions}" 2 "Kerberos")"
+            idp_redirector_count="$(csv_match_count "${top_executions}" 2 "Identity Provider Redirector")"
+            forms_count="$(csv_match_count "${top_executions}" 2 "${forms_display_name}")"
+            if [[ "${cookie_count}" != "1" || "${kerberos_count}" != "1" || "${idp_redirector_count}" != "1" || "${forms_count}" != "1" ]]; then
+              echo "ERROR: browser flow does not contain exactly the required level-0 executions" >&2
+              return 1
+            fi
+
+            forms_execution_id="$(csv_value "${top_executions}" 2 "${forms_display_name}" 1)"
+            forms_flow_id="$(csv_value "${top_executions}" 2 "${forms_display_name}" 5)"
+            if [[ -z "${forms_execution_id}" || -z "${forms_flow_id}" ]]; then
+              echo "ERROR: browser flow is missing its level-0 forms subflow" >&2
+              return 1
+            fi
+            /opt/keycloak/bin/kcadm.sh update \
+              "authentication/flows/${browser_flow}/executions" \
+              -r "${KC_REALM}" \
+              -b "{\"id\":\"${forms_execution_id}\",\"requirement\":\"ALTERNATIVE\",\"authenticationFlow\":true,\"displayName\":\"${forms_display_name}\"}"
+
+            forms_flow_alias="$(urlencode_path "${forms_display_name}")"
+
+            forms_executions="$(/opt/keycloak/bin/kcadm.sh get \
+              "authentication/flows/${forms_flow_alias}/executions" \
+              -r "${KC_REALM}" \
+              --fields id,displayName,providerId,requirement,authenticationFlow,flowId --format csv)"
+            username_password_id="$(csv_value "${forms_executions}" 2 "Username Password Form" 1)"
+            conditional_otp_execution_id="$(csv_value "${forms_executions}" 2 "${conditional_otp_display_name}" 1)"
+            conditional_otp_flow_id="$(csv_value "${forms_executions}" 2 "${conditional_otp_display_name}" 6)"
+            if [[ -z "${username_password_id}" || -z "${conditional_otp_execution_id}" || -z "${conditional_otp_flow_id}" ]]; then
+              echo "ERROR: forms subflow is missing Username Password Form or Browser - Conditional OTP" >&2
+              return 1
+            fi
+            /opt/keycloak/bin/kcadm.sh update "authentication/executions/${username_password_id}" \
+              -r "${KC_REALM}" -s requirement=REQUIRED
+            /opt/keycloak/bin/kcadm.sh update \
+              "authentication/flows/${forms_flow_alias}/executions" \
+              -r "${KC_REALM}" \
+              -b "{\"id\":\"${conditional_otp_execution_id}\",\"requirement\":\"CONDITIONAL\",\"authenticationFlow\":true,\"displayName\":\"${conditional_otp_display_name}\"}"
+
+            conditional_otp_flow_alias="$(urlencode_path "${conditional_otp_display_name}")"
+
+            role_condition_id="$(/opt/keycloak/bin/kcadm.sh get \
+              "authentication/flows/${conditional_otp_flow_alias}/executions" \
+              -r "${KC_REALM}" --fields id,providerId --format csv \
+              | awk -F',' '
+                  { gsub(/^"|"$/, "", $1); gsub(/^"|"$/, "", $2) }
+                  $2 == "conditional-user-role" { print $1; exit }
+                ')"
+            if [[ -z "${role_condition_id}" ]]; then
+              /opt/keycloak/bin/kcadm.sh create \
+                "authentication/flows/${conditional_otp_flow_alias}/executions/execution" \
+                -r "${KC_REALM}" -s provider=conditional-user-role
+              role_condition_id="$(/opt/keycloak/bin/kcadm.sh get \
+                "authentication/flows/${conditional_otp_flow_alias}/executions" \
+                -r "${KC_REALM}" --fields id,providerId --format csv \
+                | awk -F',' '
+                    { gsub(/^"|"$/, "", $1); gsub(/^"|"$/, "", $2) }
+                    $2 == "conditional-user-role" { print $1; exit }
+                  ')"
+            fi
+            if [[ -z "${role_condition_id}" ]]; then
+              echo "ERROR: could not resolve conditional-user-role execution ID" >&2
+              return 1
+            fi
+            role_config_csv="$(/opt/keycloak/bin/kcadm.sh get \
+              "authentication/flows/${conditional_otp_flow_alias}/executions" \
+              -r "${KC_REALM}" --fields id,providerId,authenticationConfig --format csv)"
+            role_config_id="$(csv_value "${role_config_csv}" 2 "conditional-user-role" 3)"
+            if [[ -n "${role_config_id}" ]]; then
+              /opt/keycloak/bin/kcadm.sh update "authentication/config/${role_config_id}" \
+                -r "${KC_REALM}" \
+                -s alias=platform-mfa-role-condition \
+                -s 'config={"conditionRoleAlias":"platform-mfa","negate":"false"}'
+            else
+              /opt/keycloak/bin/kcadm.sh create \
+                "authentication/executions/${role_condition_id}/config" \
+                -r "${KC_REALM}" \
+                -s alias=platform-mfa-role-condition \
+                -s 'config={"conditionRoleAlias":"platform-mfa","negate":"false"}'
+            fi
+            /opt/keycloak/bin/kcadm.sh update "authentication/executions/${role_condition_id}" \
+              -r "${KC_REALM}" -s requirement=REQUIRED
+
+            otp_form_id="$(/opt/keycloak/bin/kcadm.sh get \
+              "authentication/flows/${conditional_otp_flow_alias}/executions" \
+              -r "${KC_REALM}" --fields id,providerId --format csv \
+              | awk -F',' '
+                  { gsub(/^"|"$/, "", $1); gsub(/^"|"$/, "", $2) }
+                  $2 == "auth-otp-form" { print $1; exit }
+                ')"
+            if [[ -z "${otp_form_id}" ]]; then
+              echo "ERROR: Browser - Conditional OTP subflow is missing OTP Form" >&2
+              return 1
+            fi
+            /opt/keycloak/bin/kcadm.sh update "authentication/executions/${otp_form_id}" \
+              -r "${KC_REALM}" -s requirement=REQUIRED
+
+            all_executions="$(/opt/keycloak/bin/kcadm.sh get \
+              "authentication/flows/${browser_flow}/executions" \
+              -r "${KC_REALM}" \
+              --fields id,displayName,requirement,authenticationFlow,flowId,level --format csv)"
+            top_executions="$(level0_rows "${all_executions}")"
+            top_execution_count="$(printf '%s\n' "${top_executions}" | awk -F',' 'NF { count++ } END { print count + 0 }')"
+            if [[ "${top_execution_count}" != "4" ]]; then
+              echo "ERROR: browser flow still has stray level-0 executions after reconciliation" >&2
+              return 1
+            fi
+            forms_requirement="$(csv_value "${top_executions}" 2 "${forms_display_name}" 3)"
+            forms_executions="$(/opt/keycloak/bin/kcadm.sh get \
+              "authentication/flows/${forms_flow_alias}/executions" \
+              -r "${KC_REALM}" \
+              --fields id,displayName,providerId,requirement,authenticationFlow,flowId --format csv)"
+            username_password_requirement="$(csv_value "${forms_executions}" 2 "Username Password Form" 4)"
+            if [[ "${forms_requirement}" != "ALTERNATIVE" || "${username_password_requirement}" != "REQUIRED" ]]; then
+              echo "ERROR: browser flow requirements could not be restored" >&2
+              return 1
+            fi
+          }
+
           if /opt/keycloak/bin/kcadm.sh get "authentication/flows" \
                -r "${KC_REALM}" 2>/dev/null \
              | grep -q '"browser-with-conditional-otp"'; then
-            echo "browser-with-conditional-otp flow already exists; skipping creation"
+            echo "browser-with-conditional-otp flow already exists; reconciling it"
           else
             echo "Creating browser-with-conditional-otp flow..."
 
             /opt/keycloak/bin/kcadm.sh create "authentication/flows/browser/copy" \
-              -r "${KC_REALM}" -s newName=browser-with-conditional-otp
-
-            /opt/keycloak/bin/kcadm.sh create \
-              "authentication/flows/browser-with-conditional-otp/executions/flow" \
-              -r "${KC_REALM}" \
-              -s alias=otp-conditional-subflow \
-              -s type=basic-flow
-
-            _otp_subflow_exec_id=$(
-              /opt/keycloak/bin/kcadm.sh get \
-                "authentication/flows/browser-with-conditional-otp/executions" \
-                -r "${KC_REALM}" --fields id,displayName --format csv 2>/dev/null \
-              | grep "otp-conditional-subflow" | cut -d',' -f1 | tr -d '"' || true
-            )
-            if [[ -z "${_otp_subflow_exec_id}" ]]; then
-              echo "ERROR: could not resolve otp-conditional-subflow execution ID" >&2; exit 1
-            fi
-            /opt/keycloak/bin/kcadm.sh update \
-              "authentication/flows/browser-with-conditional-otp/executions" \
-              -r "${KC_REALM}" \
-              -b "{\"id\":\"${_otp_subflow_exec_id}\",\"requirement\":\"CONDITIONAL\",\"authenticationFlow\":true,\"displayName\":\"otp-conditional-subflow\"}"
-
-            /opt/keycloak/bin/kcadm.sh create \
-              "authentication/flows/otp-conditional-subflow/executions/execution" \
-              -r "${KC_REALM}" -s provider=conditional-user-role
-
-            _role_cond_id=$(
-              /opt/keycloak/bin/kcadm.sh get \
-                "authentication/flows/otp-conditional-subflow/executions" \
-                -r "${KC_REALM}" --fields id,providerId --format csv 2>/dev/null \
-              | grep "conditional-user-role" | cut -d',' -f1 | tr -d '"' || true
-            )
-            if [[ -z "${_role_cond_id}" ]]; then
-              echo "ERROR: could not resolve conditional-user-role execution ID" >&2; exit 1
-            fi
-            /opt/keycloak/bin/kcadm.sh create \
-              "authentication/executions/${_role_cond_id}/config" \
-              -r "${KC_REALM}" \
-              -s alias=platform-mfa-role-condition \
-              -s 'config={"conditionRoleAlias":"platform-mfa","negate":"false"}'
-            /opt/keycloak/bin/kcadm.sh update \
-              "authentication/executions/${_role_cond_id}" \
-              -r "${KC_REALM}" -s requirement=REQUIRED
-
-            /opt/keycloak/bin/kcadm.sh create \
-              "authentication/flows/otp-conditional-subflow/executions/execution" \
-              -r "${KC_REALM}" -s provider=auth-otp-form
-
-            _otp_form_id=$(
-              /opt/keycloak/bin/kcadm.sh get \
-                "authentication/flows/otp-conditional-subflow/executions" \
-                -r "${KC_REALM}" --fields id,providerId --format csv 2>/dev/null \
-              | grep "auth-otp-form" | cut -d',' -f1 | tr -d '"' || true
-            )
-            if [[ -z "${_otp_form_id}" ]]; then
-              echo "ERROR: could not resolve auth-otp-form execution ID" >&2; exit 1
-            fi
-            /opt/keycloak/bin/kcadm.sh update \
-              "authentication/executions/${_otp_form_id}" \
-              -r "${KC_REALM}" -s requirement=REQUIRED
-
-            echo "browser-with-conditional-otp flow created"
+              -r "${KC_REALM}" -s "newName=${browser_flow}"
           fi
+          reconcile_browser_flow
+          echo "browser-with-conditional-otp flow reconciled"
           /opt/keycloak/bin/kcadm.sh update "realms/${KC_REALM}" \
             -s browserFlow=browser-with-conditional-otp
           echo "browser-with-conditional-otp flow activated"
