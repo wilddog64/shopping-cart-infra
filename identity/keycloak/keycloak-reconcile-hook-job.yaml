@@ -182,6 +182,22 @@ spec:
             done <<< "$1"
           }
 
+          flow_executions() {
+            local flow_alias="$1" fields="$2" attempt output
+            for attempt in 1 2 3 4 5; do
+              if output="$(/opt/keycloak/bin/kcadm.sh get \
+                "authentication/flows/${flow_alias}/executions" \
+                -r "${KC_REALM}" --fields "${fields}" --format csv 2>/dev/null)"; then
+                printf '%s\n' "${output}"
+                return 0
+              fi
+              if (( attempt == 5 )); then break; fi
+              sleep 2
+            done
+            echo "ERROR: could not read executions for flow ${flow_alias}" >&2
+            return 1
+          }
+
           browser_flow="browser-with-conditional-otp"
           forms_display_name="${browser_flow} forms"
           conditional_otp_display_name="${browser_flow} Browser - Conditional OTP"
@@ -193,10 +209,8 @@ spec:
             local top_execution_count unexpected_top_execution forms_requirement username_password_requirement
             local cookie_count kerberos_count idp_redirector_count forms_count all_executions
 
-            all_executions="$(/opt/keycloak/bin/kcadm.sh get \
-              "authentication/flows/${browser_flow}/executions" \
-              -r "${KC_REALM}" \
-              --fields id,displayName,requirement,authenticationFlow,flowId,level --format csv)"
+            all_executions="$(flow_executions "${browser_flow}" \
+              id,displayName,requirement,authenticationFlow,flowId,level)"
             top_executions="$(level0_rows "${all_executions}")"
 
             stray_ids="$(csv_value "${top_executions}" 2 "otp-conditional-subflow" 1 all)"
@@ -209,10 +223,8 @@ spec:
               fi
             done <<< "${stray_ids}"
 
-            all_executions="$(/opt/keycloak/bin/kcadm.sh get \
-              "authentication/flows/${browser_flow}/executions" \
-              -r "${KC_REALM}" \
-              --fields id,displayName,requirement,authenticationFlow,flowId,level --format csv)"
+            all_executions="$(flow_executions "${browser_flow}" \
+              id,displayName,requirement,authenticationFlow,flowId,level)"
             top_executions="$(level0_rows "${all_executions}")"
             top_execution_count="$(csv_row_count "${top_executions}")"
             unexpected_top_execution="$(unexpected_top_rows "${top_executions}")"
@@ -313,10 +325,8 @@ spec:
             /opt/keycloak/bin/kcadm.sh update "authentication/executions/${otp_form_id}" \
               -r "${KC_REALM}" -s requirement=REQUIRED
 
-            all_executions="$(/opt/keycloak/bin/kcadm.sh get \
-              "authentication/flows/${browser_flow}/executions" \
-              -r "${KC_REALM}" \
-              --fields id,displayName,requirement,authenticationFlow,flowId,level --format csv)"
+            all_executions="$(flow_executions "${browser_flow}" \
+              id,displayName,requirement,authenticationFlow,flowId,level)"
             top_executions="$(level0_rows "${all_executions}")"
             top_execution_count="$(csv_row_count "${top_executions}")"
             if [[ "${top_execution_count}" != "4" ]]; then
