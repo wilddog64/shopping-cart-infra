@@ -153,6 +153,16 @@ jobs:
           cosign attest --yes --key env://COSIGN_KEY \
             --type spdxjson --predicate sbom.spdx.json "${IMAGE_REF}@${DIGEST}"
 
+      - name: Verify the promoter SSH key was provided
+        env:
+          PROMOTER_SSH_KEY: ${{ secrets.PROMOTER_SSH_KEY }}
+        run: |
+          if [ -z "${PROMOTER_SSH_KEY}" ]; then
+            echo "::error::PROMOTER_SSH_KEY is empty. The calling workflow did not forward it, or the repository has no such secret." >&2
+            echo "::error::Add 'PROMOTER_SSH_KEY: \${{ secrets.PROMOTER_SSH_KEY }}' to the secrets block of the job that calls build-push-deploy.yml, and confirm the secret exists in the calling repository." >&2
+            exit 1
+          fi
+
       - name: Update image tag in k8s/base/kustomization.yaml
         id: promote
         continue-on-error: true
