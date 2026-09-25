@@ -27,18 +27,13 @@ spec:
         app.kubernetes.io/part-of: shopping-cart
     spec:
       securityContext:
-        fsGroup: 1000
-        runAsUser: 1000
+        fsGroup: 1001
+        runAsUser: 1001
         runAsNonRoot: true
       containers:
         - name: minio
-          image: quay.io/minio/minio:RELEASE.2024-11-07T00-52-20Z
+          image: docker.io/bitnamilegacy/minio:2024.11.7-debian-12-r1
           imagePullPolicy: IfNotPresent
-          args:
-            - server
-            - /data
-            - --console-address
-            - ":9001"
           ports:
             - name: api
               containerPort: 9000
@@ -74,7 +69,7 @@ spec:
             failureThreshold: 3
           volumeMounts:
             - name: data
-              mountPath: /data
+              mountPath: /bitnami/minio/data
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false

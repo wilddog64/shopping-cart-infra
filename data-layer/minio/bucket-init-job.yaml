@@ -25,7 +25,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: mc
-          image: quay.io/minio/mc:RELEASE.2024-11-05T11-29-45Z
+          image: docker.io/bitnamilegacy/minio-client:2024.11.5-debian-12-r1
           imagePullPolicy: IfNotPresent
           command:
             - sh

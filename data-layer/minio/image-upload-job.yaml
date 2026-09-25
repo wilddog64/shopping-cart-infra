@@ -25,12 +25,12 @@ spec:
       restartPolicy: OnFailure
       initContainers:
         - name: copy-mc
-          image: quay.io/minio/mc:RELEASE.2024-11-05T11-29-45Z
+          image: docker.io/bitnamilegacy/minio-client:2024.11.5-debian-12-r1
           imagePullPolicy: IfNotPresent
           command:
             - sh
             - -c
-            - cp /usr/bin/mc /shared/mc
+            - cp /opt/bitnami/minio-client/bin/mc /shared/mc
           volumeMounts:
             - name: shared
               mountPath: /shared
