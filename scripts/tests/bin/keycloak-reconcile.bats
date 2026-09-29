@@ -11,7 +11,7 @@
   [[ "$output" == *"ifResourceExists=OVERWRITE"* ]]
   [[ "$output" == *"kcadm_get_retry()"* ]]
   [[ "$output" == *"Resource not found"* ]]
-  [[ "$output" == *"retry \${attempt}/5"* ]]
+  [[ "$output" == *"retry \${attempt}/12"* ]]
   [[ "$output" == *"sleep 5"* ]]
   [[ "$output" == *"LDAP_BIND_CREDENTIAL"* ]]
   [[ "$output" != *"kc.sh import"* ]]

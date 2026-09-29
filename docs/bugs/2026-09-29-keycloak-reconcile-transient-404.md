@@ -30,7 +30,7 @@ failure was transient rather than a permanently missing flow.
 
 The hook now routes its reconciliation `kcadm.sh get` calls through
 `kcadm_get_retry`. It retries recognized `Resource not found`/`HTTP 404`
-responses five times with a five-second delay, while immediately preserving
+responses twelve times with a five-second delay, while immediately preserving
 non-404 failures and returning failure if the 404 persists.
 
 The BATS render test guards the retry helper and its bounded behavior.

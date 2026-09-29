@@ -99,18 +99,18 @@ spec:
 
           kcadm_get_retry() {
             local attempt output rc=1 path="${1:-unknown}"
-            for attempt in 1 2 3 4 5; do
+            for attempt in $(seq 1 12); do
               rc=0
               output="$(/opt/keycloak/bin/kcadm.sh get "$@" 2>&1)" || rc=$?
               if [[ "${rc}" -eq 0 ]]; then
                 printf '%s\n' "${output}"
                 return 0
               fi
-              if [[ "${output}" != *"Resource not found"* && "${output}" != *"HTTP 404"* ]]; then
+              if ! printf '%s' "${output}" | grep -Fq -e 'Resource not found' -e 'HTTP 404'; then
                 printf '%s\n' "${output}" >&2
                 return "${rc}"
               fi
-              echo "Keycloak returned a transient 404 for ${path}; retry ${attempt}/5" >&2
+              echo "Keycloak returned a transient 404 for ${path}; retry ${attempt}/12" >&2
               sleep 5
             done
             printf '%s\n' "${output}" >&2
