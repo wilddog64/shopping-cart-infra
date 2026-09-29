@@ -117,6 +117,26 @@ spec:
             return "${rc}"
           }
 
+          kcadm_update_retry() {
+            local attempt output rc=1 path="${1:-unknown}"
+            for attempt in $(seq 1 12); do
+              rc=0
+              output="$(/opt/keycloak/bin/kcadm.sh update "$@" 2>&1)" || rc=$?
+              if [[ "${rc}" -eq 0 ]]; then
+                printf '%s\n' "${output}"
+                return 0
+              fi
+              if ! printf '%s' "${output}" | grep -Fq -e 'Resource not found' -e 'HTTP 404'; then
+                printf '%s\n' "${output}" >&2
+                return "${rc}"
+              fi
+              echo "Keycloak returned a transient 404 for update ${path}; retry ${attempt}/12" >&2
+              sleep 5
+            done
+            printf '%s\n' "${output}" >&2
+            return "${rc}"
+          }
+
           _strip_quotes() {
             local s="$1"
             s="${s#\"}"
@@ -273,7 +293,7 @@ spec:
               echo "ERROR: browser flow is missing its level-0 forms subflow" >&2
               return 1
             fi
-            /opt/keycloak/bin/kcadm.sh update \
+            kcadm_update_retry \
               "authentication/flows/${browser_flow}/executions" \
               -r "${KC_REALM}" \
               -b "{\"id\":\"${forms_execution_id}\",\"requirement\":\"ALTERNATIVE\",\"authenticationFlow\":true,\"displayName\":\"${forms_display_name}\"}"
@@ -291,9 +311,9 @@ spec:
               echo "ERROR: forms subflow is missing Username Password Form or Browser - Conditional OTP" >&2
               return 1
             fi
-            /opt/keycloak/bin/kcadm.sh update "authentication/executions/${username_password_id}" \
+            kcadm_update_retry "authentication/executions/${username_password_id}" \
               -r "${KC_REALM}" -s requirement=REQUIRED
-            /opt/keycloak/bin/kcadm.sh update \
+            kcadm_update_retry \
               "authentication/flows/${forms_flow_alias}/executions" \
               -r "${KC_REALM}" \
               -b "{\"id\":\"${conditional_otp_execution_id}\",\"requirement\":\"CONDITIONAL\",\"authenticationFlow\":true,\"displayName\":\"${conditional_otp_display_name}\"}"
@@ -324,7 +344,7 @@ spec:
               -r "${KC_REALM}" --fields id,providerId,authenticationConfig --format csv)"
             role_config_id="$(csv_value "${role_config_csv}" 2 "conditional-user-role" 3)"
             if [[ -n "${role_config_id}" ]]; then
-              /opt/keycloak/bin/kcadm.sh update "authentication/config/${role_config_id}" \
+              kcadm_update_retry "authentication/config/${role_config_id}" \
                 -r "${KC_REALM}" \
                 -s alias=platform-mfa-role-condition \
                 -s 'config={"conditionRoleAlias":"platform-mfa","negate":"false"}'
@@ -335,7 +355,7 @@ spec:
                 -s alias=platform-mfa-role-condition \
                 -s 'config={"conditionRoleAlias":"platform-mfa","negate":"false"}'
             fi
-            /opt/keycloak/bin/kcadm.sh update "authentication/executions/${role_condition_id}" \
+            kcadm_update_retry "authentication/executions/${role_condition_id}" \
               -r "${KC_REALM}" -s requirement=REQUIRED
 
             _exec_csv="$(kcadm_get_retry \
@@ -347,7 +367,7 @@ spec:
               echo "ERROR: Browser - Conditional OTP subflow is missing OTP Form" >&2
               return 1
             fi
-            /opt/keycloak/bin/kcadm.sh update "authentication/executions/${otp_form_id}" \
+            kcadm_update_retry "authentication/executions/${otp_form_id}" \
               -r "${KC_REALM}" -s requirement=REQUIRED
 
             all_executions="$(kcadm_get_retry \
@@ -384,7 +404,7 @@ spec:
           fi
           reconcile_browser_flow
           echo "browser-with-conditional-otp flow reconciled"
-          /opt/keycloak/bin/kcadm.sh update "realms/${KC_REALM}" \
+          kcadm_update_retry "realms/${KC_REALM}" \
             -s browserFlow=browser-with-conditional-otp
           echo "browser-with-conditional-otp flow activated"
 

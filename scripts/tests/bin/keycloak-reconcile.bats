@@ -10,6 +10,7 @@
   [[ "$output" == *"kcadm.sh create partialImport"* ]]
   [[ "$output" == *"ifResourceExists=OVERWRITE"* ]]
   [[ "$output" == *"kcadm_get_retry()"* ]]
+  [[ "$output" == *"kcadm_update_retry()"* ]]
   [[ "$output" == *"Resource not found"* ]]
   [[ "$output" == *"retry \${attempt}/12"* ]]
   [[ "$output" == *"sleep 5"* ]]
