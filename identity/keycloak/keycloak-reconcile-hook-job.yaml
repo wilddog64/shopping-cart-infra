@@ -100,11 +100,12 @@ spec:
           kcadm_get_retry() {
             local attempt output rc=1 path="${1:-unknown}"
             for attempt in 1 2 3 4 5; do
-              if output="$(/opt/keycloak/bin/kcadm.sh get "$@" 2>&1)"; then
+              rc=0
+              output="$(/opt/keycloak/bin/kcadm.sh get "$@" 2>&1)" || rc=$?
+              if [[ "${rc}" -eq 0 ]]; then
                 printf '%s\n' "${output}"
                 return 0
               fi
-              rc=$?
               if [[ "${output}" != *"Resource not found"* && "${output}" != *"HTTP 404"* ]]; then
                 printf '%s\n' "${output}" >&2
                 return "${rc}"
