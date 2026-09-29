@@ -47,3 +47,18 @@ The BATS render test guards the retry helper and its bounded behavior.
   metric temporarily.
 - Add post-merge verification that the PostSync Job completes and that the
   corresponding `KubeJobFailed` alert is absent.
+
+## Verification
+
+The corrected hook was run against the live hub after the failing Job was
+replaced:
+
+```text
+keycloak-realm-reconcile   <none>   1     <none>
+```
+
+The hook completed its flow reconciliation and LDAP sync, and Alertmanager's
+active alert query returned no `KubeJobFailed` entry for
+`keycloak-realm-reconcile`. The Argo Application still displayed its prior
+failed operation because this verification ran the feature-branch Job directly;
+the branch must be merged before Argo's Git-driven operation state is refreshed.
