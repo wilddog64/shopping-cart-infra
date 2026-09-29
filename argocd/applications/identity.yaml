@@ -32,6 +32,9 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      # Keep the application-level default explicit so a stale live Replace=true
+      # cannot make immutable resources such as the bound Keycloak PVC replace.
+      - Replace=false
     retry:
       limit: 5
       backoff:
