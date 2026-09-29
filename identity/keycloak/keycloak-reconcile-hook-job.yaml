@@ -97,6 +97,25 @@ spec:
             echo "Warning: partialImport exited ${_pi_rc} (re-run duplicate-key is expected); continuing with LDAP setup"
           fi
 
+          kcadm_get_retry() {
+            local attempt output rc=1 path="${1:-unknown}"
+            for attempt in 1 2 3 4 5; do
+              if output="$(/opt/keycloak/bin/kcadm.sh get "$@" 2>&1)"; then
+                printf '%s\n' "${output}"
+                return 0
+              fi
+              rc=$?
+              if [[ "${output}" != *"Resource not found"* && "${output}" != *"HTTP 404"* ]]; then
+                printf '%s\n' "${output}" >&2
+                return "${rc}"
+              fi
+              echo "Keycloak returned a transient 404 for ${path}; retry ${attempt}/5" >&2
+              sleep 5
+            done
+            printf '%s\n' "${output}" >&2
+            return "${rc}"
+          }
+
           _strip_quotes() {
             local s="$1"
             s="${s#\"}"
@@ -207,7 +226,7 @@ spec:
             local top_execution_count unexpected_top_execution forms_requirement username_password_requirement
             local cookie_count kerberos_count idp_redirector_count forms_count all_executions
 
-            all_executions="$(/opt/keycloak/bin/kcadm.sh get \
+            all_executions="$(kcadm_get_retry \
               "authentication/flows/${browser_flow}/executions" \
               -r "${KC_REALM}" \
               --fields id,displayName,requirement,authenticationFlow,flowId,level --format csv)"
@@ -223,7 +242,7 @@ spec:
               fi
             done <<< "${stray_ids}"
 
-            all_executions="$(/opt/keycloak/bin/kcadm.sh get \
+            all_executions="$(kcadm_get_retry \
               "authentication/flows/${browser_flow}/executions" \
               -r "${KC_REALM}" \
               --fields id,displayName,requirement,authenticationFlow,flowId,level --format csv)"
@@ -260,7 +279,7 @@ spec:
 
             forms_flow_alias="$(urlencode_path "${forms_display_name}")"
 
-            forms_executions="$(/opt/keycloak/bin/kcadm.sh get \
+            forms_executions="$(kcadm_get_retry \
               "authentication/flows/${forms_flow_alias}/executions" \
               -r "${KC_REALM}" \
               --fields id,displayName,providerId,requirement,authenticationFlow,flowId --format csv)"
@@ -280,7 +299,7 @@ spec:
 
             conditional_otp_flow_alias="$(urlencode_path "${conditional_otp_display_name}")"
 
-            _exec_csv="$(/opt/keycloak/bin/kcadm.sh get \
+            _exec_csv="$(kcadm_get_retry \
               "authentication/flows/${conditional_otp_flow_alias}/executions" \
               -r "${KC_REALM}" --fields id,providerId --format csv \
               )"
@@ -289,7 +308,7 @@ spec:
               /opt/keycloak/bin/kcadm.sh create \
                 "authentication/flows/${conditional_otp_flow_alias}/executions/execution" \
                 -r "${KC_REALM}" -s provider=conditional-user-role
-              _exec_csv="$(/opt/keycloak/bin/kcadm.sh get \
+              _exec_csv="$(kcadm_get_retry \
                 "authentication/flows/${conditional_otp_flow_alias}/executions" \
                 -r "${KC_REALM}" --fields id,providerId --format csv \
                 )"
@@ -299,7 +318,7 @@ spec:
               echo "ERROR: could not resolve conditional-user-role execution ID" >&2
               return 1
             fi
-            role_config_csv="$(/opt/keycloak/bin/kcadm.sh get \
+            role_config_csv="$(kcadm_get_retry \
               "authentication/flows/${conditional_otp_flow_alias}/executions" \
               -r "${KC_REALM}" --fields id,providerId,authenticationConfig --format csv)"
             role_config_id="$(csv_value "${role_config_csv}" 2 "conditional-user-role" 3)"
@@ -318,7 +337,7 @@ spec:
             /opt/keycloak/bin/kcadm.sh update "authentication/executions/${role_condition_id}" \
               -r "${KC_REALM}" -s requirement=REQUIRED
 
-            _exec_csv="$(/opt/keycloak/bin/kcadm.sh get \
+            _exec_csv="$(kcadm_get_retry \
               "authentication/flows/${conditional_otp_flow_alias}/executions" \
               -r "${KC_REALM}" --fields id,providerId --format csv \
               )"
@@ -330,7 +349,7 @@ spec:
             /opt/keycloak/bin/kcadm.sh update "authentication/executions/${otp_form_id}" \
               -r "${KC_REALM}" -s requirement=REQUIRED
 
-            all_executions="$(/opt/keycloak/bin/kcadm.sh get \
+            all_executions="$(kcadm_get_retry \
               "authentication/flows/${browser_flow}/executions" \
               -r "${KC_REALM}" \
               --fields id,displayName,requirement,authenticationFlow,flowId,level --format csv)"
@@ -341,7 +360,7 @@ spec:
               return 1
             fi
             forms_requirement="$(csv_value "${top_executions}" 2 "${forms_display_name}" 3)"
-            forms_executions="$(/opt/keycloak/bin/kcadm.sh get \
+            forms_executions="$(kcadm_get_retry \
               "authentication/flows/${forms_flow_alias}/executions" \
               -r "${KC_REALM}" \
               --fields id,displayName,providerId,requirement,authenticationFlow,flowId --format csv)"
