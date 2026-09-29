@@ -311,8 +311,10 @@ spec:
               echo "ERROR: forms subflow is missing Username Password Form or Browser - Conditional OTP" >&2
               return 1
             fi
-            kcadm_update_retry "authentication/executions/${username_password_id}" \
-              -r "${KC_REALM}" -s requirement=REQUIRED
+            kcadm_update_retry \
+              "authentication/flows/${forms_flow_alias}/executions" \
+              -r "${KC_REALM}" \
+              -b "{\"id\":\"${username_password_id}\",\"requirement\":\"REQUIRED\"}"
             kcadm_update_retry \
               "authentication/flows/${forms_flow_alias}/executions" \
               -r "${KC_REALM}" \
@@ -355,8 +357,10 @@ spec:
                 -s alias=platform-mfa-role-condition \
                 -s 'config={"conditionRoleAlias":"platform-mfa","negate":"false"}'
             fi
-            kcadm_update_retry "authentication/executions/${role_condition_id}" \
-              -r "${KC_REALM}" -s requirement=REQUIRED
+            kcadm_update_retry \
+              "authentication/flows/${conditional_otp_flow_alias}/executions" \
+              -r "${KC_REALM}" \
+              -b "{\"id\":\"${role_condition_id}\",\"requirement\":\"REQUIRED\"}"
 
             _exec_csv="$(kcadm_get_retry \
               "authentication/flows/${conditional_otp_flow_alias}/executions" \
@@ -367,8 +371,10 @@ spec:
               echo "ERROR: Browser - Conditional OTP subflow is missing OTP Form" >&2
               return 1
             fi
-            kcadm_update_retry "authentication/executions/${otp_form_id}" \
-              -r "${KC_REALM}" -s requirement=REQUIRED
+            kcadm_update_retry \
+              "authentication/flows/${conditional_otp_flow_alias}/executions" \
+              -r "${KC_REALM}" \
+              -b "{\"id\":\"${otp_form_id}\",\"requirement\":\"REQUIRED\"}"
 
             all_executions="$(kcadm_get_retry \
               "authentication/flows/${browser_flow}/executions" \
