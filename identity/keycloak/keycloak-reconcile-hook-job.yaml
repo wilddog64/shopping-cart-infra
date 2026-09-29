@@ -296,7 +296,7 @@ spec:
             kcadm_update_retry \
               "authentication/flows/${browser_flow}/executions" \
               -r "${KC_REALM}" \
-              -b "{\"id\":\"${forms_execution_id}\",\"requirement\":\"ALTERNATIVE\",\"authenticationFlow\":true,\"displayName\":\"${forms_display_name}\"}"
+              -b "{\"id\":\"${forms_execution_id}\",\"requirement\":\"ALTERNATIVE\"}"
 
             forms_flow_alias="$(urlencode_path "${forms_display_name}")"
 
@@ -316,7 +316,7 @@ spec:
             kcadm_update_retry \
               "authentication/flows/${forms_flow_alias}/executions" \
               -r "${KC_REALM}" \
-              -b "{\"id\":\"${conditional_otp_execution_id}\",\"requirement\":\"CONDITIONAL\",\"authenticationFlow\":true,\"displayName\":\"${conditional_otp_display_name}\"}"
+              -b "{\"id\":\"${conditional_otp_execution_id}\",\"requirement\":\"CONDITIONAL\"}"
 
             conditional_otp_flow_alias="$(urlencode_path "${conditional_otp_display_name}")"
 

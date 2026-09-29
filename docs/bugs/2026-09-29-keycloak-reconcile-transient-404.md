@@ -28,11 +28,12 @@ failure was transient rather than a permanently missing flow.
 
 ## Fix
 
-The hook now routes its reconciliation `kcadm.sh get` and idempotent `update`
-calls through bounded retry helpers. They retry recognized `Resource not
-found`/`HTTP 404` responses twelve times with a five-second delay, while
-immediately preserving non-404 failures and returning failure if the 404
-persists.
+The hook now sends the minimal Keycloak 24 execution-update representation
+(`id` plus `requirement`) and routes its reconciliation `kcadm.sh get` and
+idempotent `update` calls through bounded retry helpers. The helpers retry
+recognized `Resource not found`/`HTTP 404` responses twelve times with a
+five-second delay, while immediately preserving non-404 failures and returning
+failure if the 404 persists.
 
 The BATS render test guards the retry helper and its bounded behavior.
 
