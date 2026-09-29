@@ -4,6 +4,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: postgres-keycloak-pvc
   namespace: identity
+  annotations:
+    argocd.argoproj.io/sync-options: Replace=false
   labels:
     app.kubernetes.io/name: postgres-keycloak
     app.kubernetes.io/component: database
