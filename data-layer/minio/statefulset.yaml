@@ -38,7 +38,7 @@ spec:
             - sh
             - -c
             - |
-              if [ "$(stat -c '%u' /bitnami/minio/data)" != "1001" ]; then
+              if [ -n "$(find /bitnami/minio/data ! -user 1001 | head -n 1)" ]; then
                 chown -R 1001:1001 /bitnami/minio/data
               fi
           securityContext:
@@ -51,6 +51,7 @@ spec:
                 - ALL
               add:
                 - CHOWN
+                - DAC_READ_SEARCH
           volumeMounts:
             - name: data
               mountPath: /bitnami/minio/data

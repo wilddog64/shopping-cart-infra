@@ -60,3 +60,19 @@ The StatefulSet therefore removes the old `server /data --console-address :9001`
 `runAsUser` and `fsGroup` to `1001`, and mounts the PVC at `/bitnami/minio/data`. The image-upload
 init container copies `mc` from the Bitnami path. API and console ports, health probes, credentials,
 `MC_CONFIG_DIR=/tmp/.mc`, and `readOnlyRootFilesystem: false` remain unchanged.
+
+## Recurrence-safe ownership decision
+
+The chosen port keeps Bitnami's UID 1001 and performs an ownership migration before MinIO starts.
+We did not keep UID 1000: Bitnami's MinIO documentation identifies the image as non-root and says
+that mounted files and directories must be writable by UID 1001; it also documents
+`/bitnami/minio/data` as the persistent data path. The existing Hostinger PVC uses local-path
+storage, which does not apply Kubernetes `fsGroup` ownership changes, so merely changing the pod
+security context would not make the existing UID-1000 files readable by MinIO.
+
+The `fix-data-ownership` init container runs as root with the pinned `busybox:1.36` image. It scans
+the entire mounted data tree with `find ... ! -user 1001`, so a top-level directory already owned by
+1001 cannot hide nested UID-1000 files. If any mismatch is found, it recursively changes ownership
+to `1001:1001`; otherwise it does nothing. It keeps `drop: [ALL]` and adds only `CHOWN` and
+`DAC_READ_SEARCH`, allowing the scan and recursive ownership update through directories that deny
+access to other users. MinIO then starts as UID 1001 against the same PVC and data path.
