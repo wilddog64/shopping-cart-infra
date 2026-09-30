@@ -200,6 +200,32 @@ spec:
           forms_display_name="${browser_flow} forms"
           conditional_otp_display_name="${browser_flow} Browser - Conditional OTP"
 
+          # BEGIN flow readiness wait
+          wait_for_flow_executions() {
+            local timeout_seconds="${KEYCLOAK_FLOW_READY_TIMEOUT_SECONDS:-60}"
+            local started_at current_at elapsed attempt=0
+
+            started_at="$(date +%s)"
+            while true; do
+              attempt=$((attempt + 1))
+              if /opt/keycloak/bin/kcadm.sh get \
+                "authentication/flows/${browser_flow}/executions" \
+                -r "${KC_REALM}" >/dev/null 2>&1; then
+                echo "browser flow readable after ${attempt} attempt(s)"
+                return 0
+              fi
+
+              current_at="$(date +%s)"
+              elapsed=$((current_at - started_at))
+              if (( elapsed >= timeout_seconds )); then
+                echo "ERROR: browser flow executions still 404 after ${elapsed}s" >&2
+                return 1
+              fi
+              sleep 2
+            done
+          }
+          # END flow readiness wait
+
           reconcile_browser_flow() {
             local top_executions stray_ids stray_id forms_execution_id forms_flow_id forms_flow_alias
             local forms_executions username_password_id conditional_otp_execution_id conditional_otp_flow_id
@@ -352,16 +378,20 @@ spec:
             fi
           }
 
+          # BEGIN flow readiness dispatch
           if /opt/keycloak/bin/kcadm.sh get "authentication/flows" \
                -r "${KC_REALM}" 2>/dev/null \
              | grep -q '"browser-with-conditional-otp"'; then
             echo "browser-with-conditional-otp flow already exists; reconciling it"
+            wait_for_flow_executions
           else
             echo "Creating browser-with-conditional-otp flow..."
 
             /opt/keycloak/bin/kcadm.sh create "authentication/flows/browser/copy" \
               -r "${KC_REALM}" -s "newName=${browser_flow}"
+            wait_for_flow_executions
           fi
+          # END flow readiness dispatch
           reconcile_browser_flow
           echo "browser-with-conditional-otp flow reconciled"
           /opt/keycloak/bin/kcadm.sh update "realms/${KC_REALM}" \
