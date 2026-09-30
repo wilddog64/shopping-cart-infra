@@ -97,6 +97,7 @@ spec:
             echo "Warning: partialImport exited ${_pi_rc} (re-run duplicate-key is expected); continuing with LDAP setup"
           fi
 
+          # BEGIN reconcile support helpers
           _strip_quotes() {
             local s="$1"
             s="${s#\"}"
@@ -195,6 +196,7 @@ spec:
             done
             printf '%s' "${out}"
           }
+          # END reconcile support helpers
 
           browser_flow="browser-with-conditional-otp"
           forms_display_name="${browser_flow} forms"
@@ -226,6 +228,7 @@ spec:
           }
           # END flow readiness wait
 
+          # BEGIN reconcile browser flow
           reconcile_browser_flow() {
             local top_executions stray_ids stray_id forms_execution_id forms_flow_id forms_flow_alias
             local forms_executions username_password_id conditional_otp_execution_id conditional_otp_flow_id
@@ -282,7 +285,8 @@ spec:
             /opt/keycloak/bin/kcadm.sh update \
               "authentication/flows/${browser_flow}/executions" \
               -r "${KC_REALM}" \
-              -b "{\"id\":\"${forms_execution_id}\",\"requirement\":\"ALTERNATIVE\",\"authenticationFlow\":true,\"displayName\":\"${forms_display_name}\"}"
+              -b "{\"id\":\"${forms_execution_id}\",\"requirement\":\"ALTERNATIVE\",\"authenticationFlow\":true,\
+              \"flowId\":\"${forms_flow_id}\",\"displayName\":\"${forms_display_name}\"}"
 
             forms_flow_alias="$(urlencode_path "${forms_display_name}")"
 
@@ -302,7 +306,8 @@ spec:
             /opt/keycloak/bin/kcadm.sh update \
               "authentication/flows/${forms_flow_alias}/executions" \
               -r "${KC_REALM}" \
-              -b "{\"id\":\"${conditional_otp_execution_id}\",\"requirement\":\"CONDITIONAL\",\"authenticationFlow\":true,\"displayName\":\"${conditional_otp_display_name}\"}"
+              -b "{\"id\":\"${conditional_otp_execution_id}\",\"requirement\":\"CONDITIONAL\",\"authenticationFlow\":true,\
+              \"flowId\":\"${conditional_otp_flow_id}\",\"displayName\":\"${conditional_otp_display_name}\"}"
 
             conditional_otp_flow_alias="$(urlencode_path "${conditional_otp_display_name}")"
 
@@ -377,6 +382,7 @@ spec:
               return 1
             fi
           }
+          # END reconcile browser flow
 
           # BEGIN flow readiness dispatch
           if /opt/keycloak/bin/kcadm.sh get "authentication/flows" \
