@@ -301,8 +301,9 @@ spec:
               echo "ERROR: forms subflow is missing Username Password Form or Browser - Conditional OTP" >&2
               return 1
             fi
-            /opt/keycloak/bin/kcadm.sh update "authentication/executions/${username_password_id}" \
-              -r "${KC_REALM}" -s requirement=REQUIRED
+            /opt/keycloak/bin/kcadm.sh update "authentication/flows/${forms_flow_alias}/executions" \
+              -r "${KC_REALM}" \
+              -b "{\"id\":\"${username_password_id}\",\"requirement\":\"REQUIRED\"}"
             /opt/keycloak/bin/kcadm.sh update \
               "authentication/flows/${forms_flow_alias}/executions" \
               -r "${KC_REALM}" \
@@ -346,8 +347,9 @@ spec:
                 -s alias=platform-mfa-role-condition \
                 -s 'config={"conditionRoleAlias":"platform-mfa","negate":"false"}'
             fi
-            /opt/keycloak/bin/kcadm.sh update "authentication/executions/${role_condition_id}" \
-              -r "${KC_REALM}" -s requirement=REQUIRED
+            /opt/keycloak/bin/kcadm.sh update "authentication/flows/${conditional_otp_flow_alias}/executions" \
+              -r "${KC_REALM}" \
+              -b "{\"id\":\"${role_condition_id}\",\"requirement\":\"REQUIRED\"}"
 
             _exec_csv="$(/opt/keycloak/bin/kcadm.sh get \
               "authentication/flows/${conditional_otp_flow_alias}/executions" \
@@ -358,8 +360,9 @@ spec:
               echo "ERROR: Browser - Conditional OTP subflow is missing OTP Form" >&2
               return 1
             fi
-            /opt/keycloak/bin/kcadm.sh update "authentication/executions/${otp_form_id}" \
-              -r "${KC_REALM}" -s requirement=REQUIRED
+            /opt/keycloak/bin/kcadm.sh update "authentication/flows/${conditional_otp_flow_alias}/executions" \
+              -r "${KC_REALM}" \
+              -b "{\"id\":\"${otp_form_id}\",\"requirement\":\"REQUIRED\"}"
 
             all_executions="$(/opt/keycloak/bin/kcadm.sh get \
               "authentication/flows/${browser_flow}/executions" \

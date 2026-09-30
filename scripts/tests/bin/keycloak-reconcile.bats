@@ -126,6 +126,10 @@ fi
 
 if [[ "${args}" == update* ]]; then
   printf '%s\n' "${args}" >> "${updates_file}"
+  if [[ "${args}" == *"update authentication/executions/"* ]]; then
+    echo "Resource not found for url" >&2
+    exit 1
+  fi
   if [[ "${args}" == *'"authenticationFlow":true'* && "${args}" != *'"flowId":'* ]]; then
     echo "Resource not found for url" >&2
     exit 1
@@ -195,6 +199,13 @@ PY
   [ "$status" -eq 0 ]
 }
 
+@test "keycloak-reconcile hook: requirement updates use parent flows" {
+  repo_root="$(cd "$BATS_TEST_DIRNAME/../../.." && pwd)"
+  render_hook_script "${repo_root}"
+  run grep -F -- 'update "authentication/executions/' "${test_tmpdir}/hook.sh"
+  [ "$status" -ne 0 ]
+}
+
 @test "keycloak-reconcile hook: reconciles the captured flow with both IDs" {
   repo_root="$(cd "$BATS_TEST_DIRNAME/../../.." && pwd)"
   make_reconcile_probe "${repo_root}"
@@ -204,6 +215,22 @@ PY
   [[ "$output" == *"reconcile_rc=0"* ]]
   run cat "${test_tmpdir}/updates"
   [ "$status" -eq 0 ]
+  python3 - "${test_tmpdir}/updates" <<'PY'
+import sys
+
+lines = open(sys.argv[1]).read().splitlines()
+expected = [
+    ("authentication/flows/browser-with-conditional-otp%20forms/executions",
+     "47df1e22-2f22-478f-bddc-32a9871a346f"),
+    ("authentication/flows/browser-with-conditional-otp%20Browser%20-%20Conditional%20OTP/executions",
+     "2ed55ec6-0fe7-4298-a396-a07f8ad33993"),
+    ("authentication/flows/browser-with-conditional-otp%20Browser%20-%20Conditional%20OTP/executions",
+     "ac0bb8fe-bc30-4f32-8b95-423f33a9e44a"),
+]
+for path, execution_id in expected:
+    assert any(f"update {path} " in line and f'"id":"{execution_id}"' in line for line in lines), (path, execution_id, lines)
+assert not any("update authentication/executions/" in line for line in lines)
+PY
   [[ "$output" == *'"flowId":"1b41e828-6706-41b9-8a3a-50b2013e7e1d"'* ]]
   [[ "$output" == *'"flowId":"f01f2d25-00eb-4840-94d4-92a24cb78d68"'* ]]
 }
