@@ -30,6 +30,30 @@ spec:
         fsGroup: 1001
         runAsUser: 1001
         runAsNonRoot: true
+      initContainers:
+        - name: fix-data-ownership
+          image: busybox:1.36
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              if [ "$(stat -c '%u' /bitnami/minio/data)" != "1001" ]; then
+                chown -R 1001:1001 /bitnami/minio/data
+              fi
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - CHOWN
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/minio/data
       containers:
         - name: minio
           image: docker.io/bitnamilegacy/minio:2024.11.7-debian-12-r1
