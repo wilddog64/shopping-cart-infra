@@ -39,6 +39,7 @@ resources:
 - postgres.yaml
 - keycloak-secrets-externalsecret.yaml
 - keycloak-client-secrets-externalsecret.yaml
+- k3dm-smoke-user-externalsecret.yaml
 - deployment.yaml
 - keycloak-reconcile-hook-job.yaml
 
