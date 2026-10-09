@@ -24,7 +24,7 @@ Shared infrastructure for the Shopping Cart platform:
 
 ### Kustomization Updates
 - App image tags are in each app repo's `k8s/<app>/base/kustomization.yaml` — updated by CI in the app repo, not here
-- `identity/ldap/` and `identity/keycloak/` use Kustomize overlays managed in this repo
+- `identity/keycloak/` uses a Kustomize overlay managed in this repo (LDAP is deployed by k3d-manager)
 
 ### GitOps Principle
 - ArgoCD watches this repo for changes to `argocd/`, `data-layer/`, `identity/`, and `namespaces/` manifests
