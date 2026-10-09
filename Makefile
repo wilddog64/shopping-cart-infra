@@ -246,9 +246,7 @@ identity-status: ## Show identity stack status
 	@echo "${BLUE}=== Identity Stack Status ===${RESET}"
 	@kubectl get pods -n identity 2>/dev/null || echo "Identity namespace not found"
 
-identity-deploy: ## Deploy identity stack (LDAP + Keycloak)
-	@echo "${BLUE}Deploying LDAP...${RESET}"
-	kubectl apply -k identity/ldap/
+identity-deploy: ## Deploy identity stack (Keycloak)
 	@echo "${BLUE}Deploying Keycloak...${RESET}"
 	kubectl apply -k identity/keycloak/
 	@echo "${GREEN}✓ Identity stack deployed${RESET}"
@@ -256,7 +254,6 @@ identity-deploy: ## Deploy identity stack (LDAP + Keycloak)
 identity-delete: ## Delete identity stack
 	@echo "${YELLOW}Deleting identity stack...${RESET}"
 	kubectl delete -k identity/keycloak/ --ignore-not-found
-	kubectl delete -k identity/ldap/ --ignore-not-found
 	@echo "${GREEN}✓ Identity stack deleted${RESET}"
 
 keycloak-ui: ## Port-forward to Keycloak UI

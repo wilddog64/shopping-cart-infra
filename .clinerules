@@ -138,7 +138,6 @@ kubectl apply -f argocd/projects/
 kubectl apply -f argocd/applications/
 
 # 5. Deploy identity stack
-kubectl apply -k identity/ldap/
 kubectl apply -k identity/keycloak/
 
 # Or use make targets:

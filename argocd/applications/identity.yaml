@@ -18,9 +18,6 @@ spec:
     - repoURL: https://github.com/wilddog64/shopping-cart-infra.git
       targetRevision: HEAD
       path: identity/keycloak
-    - repoURL: https://github.com/wilddog64/shopping-cart-infra.git
-      targetRevision: HEAD
-      path: identity/ldap
 
   destination:
     server: https://kubernetes.default.svc
@@ -41,4 +38,4 @@ spec:
 
   info:
     - name: Description
-      value: Keycloak + OpenLDAP identity stack for SSO
+      value: Keycloak identity stack for SSO (LDAP is the k3d-manager openldap release)
