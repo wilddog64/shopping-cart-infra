@@ -118,10 +118,22 @@ workflow = open(sys.argv[1], encoding="utf-8").read()
 
 assert ":latest" not in workflow
 assert "ghcr.io/wilddog64/minio-image-uploader:sha-${{ github.sha }}" in workflow
-assert "ghcr.io/wilddog64/minio-image-uploader:1.0.0" in workflow
+assert "ghcr.io/wilddog64/minio-image-uploader:${{ steps.version.outputs.version }}" in workflow
+assert "minio-image-uploader:1.0.0" not in workflow
+assert "data-layer/minio/uploader/VERSION" in workflow
+assert 'docker buildx imagetools inspect "${IMAGE_REF}:${version}"' in workflow
+for step in ("Build and push image", "Install cosign", "Sign image by digest"):
+    block = workflow.split(f"- name: {step}", 1)[1].split("- name:", 1)[0]
+    assert "if: steps.version.outputs.publish == 'true'" in block, step
 assert "platforms: linux/amd64" in workflow
 assert 'cosign sign --yes --key env://COSIGN_KEY "${IMAGE_REF}@${DIGEST}"' in workflow
 assert '[ -n "$COSIGN_KEY" ]' in workflow
 PY
   [ "$status" -eq 0 ]
+}
+
+@test "uploader VERSION is a semver that matches the image the Job pins" {
+  version="$(tr -d '[:space:]' < "${repo_root}/data-layer/minio/uploader/VERSION")"
+  [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+  grep -q "minio-image-uploader:${version}@sha256:" "${repo_root}/data-layer/minio/image-upload-job.yaml"
 }
