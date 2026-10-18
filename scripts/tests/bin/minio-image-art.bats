@@ -81,8 +81,8 @@ PY
   stub_path="$(make_mc_stub)"
   for marker in missing 1 2; do
     log_path="${test_tmpdir}/mc-${marker}.log"
-    if [ "${marker}" = "2" ]; then
-      marker_env=(MC_MARKER=2)
+    if [ "${marker}" != "missing" ]; then
+      marker_env=(MC_MARKER="${marker}")
     else
       marker_env=()
     fi
