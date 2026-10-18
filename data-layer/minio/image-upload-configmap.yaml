@@ -55,6 +55,8 @@ data:
     ROOT_PASSWORD = os.environ["MINIO_ROOT_PASSWORD"]
     ALIAS = "local"
     WIDTH, HEIGHT = 800, 600
+    # Bump this whenever generate_image output changes.
+    ART_VERSION = "2"
 
 
     def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
@@ -82,10 +84,6 @@ data:
         x = (WIDTH - text_w) // 2
         y = (HEIGHT - text_h) // 2
         draw.text((x, y), label, fill="white", font=font)
-
-        # Subtle bottom tag
-        tag_font = ImageFont.load_default(size=24)
-        draw.text((margin + 10, HEIGHT - margin - 30), slug, fill="white", font=tag_font)
 
         path = Path(tempfile.gettempdir()) / f"{slug}.jpg"
         img.save(str(path), "JPEG", quality=85)
@@ -122,11 +120,23 @@ data:
         return result.returncode == 0
 
 
+    def stored_art_version() -> str:
+        result = subprocess.run(
+            [MC, "cat", f"{ALIAS}/{BUCKET}/.art-version"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            return ""
+        return result.stdout.strip()
+
+
     def main() -> None:
         wait_for_minio()
+        refresh = stored_art_version() != ART_VERSION
         for slug, label, bg_color in IMAGES:
             dest = f"{ALIAS}/{BUCKET}/{slug}.jpg"
-            if image_exists(slug):
+            if image_exists(slug) and not refresh:
                 print(f"Already exists: {slug}.jpg — skipping")
                 continue
             print(f"Generating {slug}...")
@@ -134,6 +144,14 @@ data:
             mc("cp", str(path), dest)
             path.unlink()
             print(f"Uploaded {slug}.jpg")
+        if refresh:
+            marker = tempfile.NamedTemporaryFile(mode="w", delete=False)
+            try:
+                marker.write(ART_VERSION)
+                marker.close()
+                mc("cp", marker.name, f"{ALIAS}/{BUCKET}/.art-version")
+            finally:
+                Path(marker.name).unlink(missing_ok=True)
         print("Image upload complete.")
 
 
