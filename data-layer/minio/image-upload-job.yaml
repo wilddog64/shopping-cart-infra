@@ -10,9 +10,10 @@ metadata:
     app.kubernetes.io/part-of: shopping-cart
   annotations:
     argocd.argoproj.io/hook: PostSync
-    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
     argocd.argoproj.io/hook-weight: "1"
 spec:
+  activeDeadlineSeconds: 600
   ttlSecondsAfterFinished: 300
   backoffLimit: 3
   template:
