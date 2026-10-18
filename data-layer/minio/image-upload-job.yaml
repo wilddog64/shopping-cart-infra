@@ -26,7 +26,7 @@ spec:
       restartPolicy: OnFailure
       initContainers:
         - name: copy-mc
-          image: docker.io/bitnamilegacy/minio-client:2024.11.5-debian-12-r1
+          image: docker.io/bitnamilegacy/minio-client:2024.11.5-debian-12-r1@sha256:e25c5897d46782439d75874e49ad54b606f2b8b2f51128afaec9ae8cf7903806
           imagePullPolicy: IfNotPresent
           command:
             - sh
@@ -41,14 +41,11 @@ spec:
               drop: [ALL]
       containers:
         - name: uploader
-          image: python:3.12-slim
+          image: ghcr.io/wilddog64/minio-image-uploader:1.0.0@sha256:f152ceb0e3293888372fc43fe0e8a87bbcea3d1fb1e1dba7bcc599596b72657d
           imagePullPolicy: IfNotPresent
           command:
-            - sh
-            - -c
-            - |
-              pip install --quiet Pillow
-              python3 /scripts/generate-and-upload.py
+            - python3
+            - /scripts/generate-and-upload.py
           env:
             - name: MC_BIN
               value: /shared/mc
