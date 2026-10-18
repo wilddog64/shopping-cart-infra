@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Fixed
+- The image-upload Job now runs the signed `minio-image-uploader:1.0.0` by digest with no run-time `pip install`, and `copy-mc` is digest-pinned. The uploader workflow takes its tag from `data-layer/minio/uploader/VERSION` and skips publishing (with a warning) when that version already exists, so a published tag is never overwritten.
 - `data-layer/minio/`: the PostSync image-upload Job installed Pillow from PyPI on every run and had no deadline, so a failed or hung run held the hook for about 25 hours (2026-10-16 to 10-17 on ubuntu-hostinger) and left the data-layer app OutOfSync with KubeJobFailed firing. The Job now has `activeDeadlineSeconds: 600` and `hook-delete-policy: BeforeHookCreation,HookSucceeded`, so a stuck run is cut off and the next sync replaces a failed Job. A new `uploader/Dockerfile` (digest-pinned `python:3.12-slim`, `Pillow==13.0.0`, non-root) and `minio-uploader-image.yml` workflow publish `ghcr.io/wilddog64/minio-image-uploader` as amd64 `:1.0.0` and `:sha-<sha>`, cosign-signed by digest for Kyverno; the workflow refuses to build when `COSIGN_KEY` is empty. The Job switches to that image (and drops `pip install`) in a follow-up once the first signed publish exists.
 
 ### Changed
